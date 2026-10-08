@@ -1,0 +1,10 @@
+{
+  "description": "Enhances presentations with real-time pacing, audience feedback, teleprompter support, live captions, Q&A management, and post-talk analytics.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -1,0 +1,10 @@
+@import './styles/fonts.css';
+@import 'tailwindcss';
+@import './styles/theme.css';
+@layer base {
+  body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--foreground); }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button { cursor: pointer; }
+  button:focus-visible, a:focus-visible { outline: 2px solid #0284c7; outline-offset: 4px; }
+  ::selection { background: #e0f2fe; color: #0f172a; }
+}
