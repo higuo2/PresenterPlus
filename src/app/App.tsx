@@ -8,7 +8,6 @@ import {
 } from "react-router"
 import {
   Activity,
-  AlertCircle,
   Menu,
   ArrowDown,
   ArrowLeft,
@@ -49,96 +48,96 @@ import {
 const cn = (...values: (string | false | undefined)[]) =>
   values.filter(Boolean).join(" ")
 const slides = [
-  "A new way to present",
-  "The human connection",
-  "System architecture",
-  "Designed for flow",
-  "Multimodal interaction",
-  "The feedback loop",
-  "Looking ahead",
-  "Reading the room",
-  "Hands-free control",
-  "Captions for all",
-  "Notes, automatically",
-  "After the talk",
+  "Finance Report",
+  "Introduction",
+  "Overall Sales Report",
+  "Performance",
+  "Customer Data",
+  "Profit Obtained",
+  "Customer Satisfaction",
+  "Evaluation",
+  "Next Steps",
+  "Thank You",
 ]
 const notes = [
   {
-    before: "There is ",
-    highlight: "a new way to present",
+    before: "I'll take you through ",
+    highlight: "how the period closed",
+    after: ", and the three places we should fix.",
+  },
+  {
+    before: "The business ",
+    highlight: "made money",
+    after: ". The strain shows up after the sale.",
+  },
+  {
+    before: "Sales ",
+    highlight: "came in where we expected",
+    after: ". This is not a demand problem.",
+  },
+  {
+    before: "The total looks fine. The leak is ",
+    highlight: "after someone decides to buy",
     after: ".",
   },
   {
-    before: "What matters is ",
-    highlight: "the human connection",
+    before: "The mix has not moved. ",
+    highlight: "Repeat purchase",
+    after: " is the number to remember.",
+  },
+  {
+    before: "Gross profit was ",
+    highlight: "1.5 billion rupiah",
+    after: ". Net profit was 1.2 billion.",
+  },
+  {
+    before: "Customers are not leaving in a wave. ",
+    highlight: "The next order is no longer automatic",
     after: ".",
   },
   {
-    before: "Voice, gesture, and feedback share one ",
-    highlight: "system",
+    before: "Fix ",
+    highlight: "communication, product information, and shipping",
+    after: ", in that order.",
+  },
+  {
+    before: "Do those three ",
+    highlight: "before we add a new campaign",
     after: ".",
   },
   {
-    before: "The pace should feel ",
-    highlight: "designed for flow",
-    after: ".",
-  },
-  {
-    before: "Point, speak, and ",
-    highlight: "the slide responds",
-    after: ".",
-  },
-  {
-    before: "The room answers through ",
-    highlight: "a feedback loop",
-    after: ".",
-  },
-  {
-    before: "The next sessions get ",
-    highlight: "easier",
-    after: ".",
-  },
-  {
-    before: "Applause and silence tell you ",
-    highlight: "how the room feels",
-    after: ".",
-  },
-  {
-    before: "A swipe or a fist replaces ",
-    highlight: "the clicker",
-    after: ".",
-  },
-  {
-    before: "People far away can still ",
-    highlight: "read every line",
-    after: ".",
-  },
-  {
-    before: "The notes are ready ",
-    highlight: "before anyone asks",
-    after: ".",
-  },
-  {
-    before: "After the talk, the ",
-    highlight: "pattern is visible",
+    before: "That's the period. ",
+    highlight: "I'll take questions",
     after: ".",
   },
 ]
 const line = (note: (typeof notes)[number]) =>
   `${note.before}${note.highlight}${note.after}`
 const script = [
-  "When technology gets out of the way, we can focus on what really matters.",
-  "Great presentations aren't just about sharing information. They're about creating a connection.",
-  "Our multimodal approach brings voice, gesture, and real-time feedback into one seamless experience.",
-  "You stay in your flow. The system takes care of the rest.",
-  "Watch the room. Applause means keep going. A long silence means give them a moment.",
-  "A swipe moves the slide. A closed fist pauses. Point, then say zoom in.",
-  "People at the back can read the line you are speaking, highlighted as you say it.",
-  "Open both arms when the questions start. The script steps aside.",
-  "Say end Q and A when the conversation is finished, and the lecture comes back.",
-  "The notes are already arranged by slide. Nobody had to type them in the dark.",
-  "When the talk ends, the pattern is still there: pace, pauses, and the questions they asked.",
+  "I'll take you through how the period closed, and the three places we should fix.",
+  "Sales, profit, then the customer issues that are eating into the result.",
+  "The business made money.",
+  "The strain shows up after the sale, not in the headline.",
+  "Sales came in where we expected.",
+  "Nothing in the total says we have a demand problem.",
+  "Performance is fine if you only look at the total.",
+  "The leak is what happens after someone decides to buy.",
+  "The customer mix, by gender and by age, has not moved.",
+  "Repeat purchase is the number to remember. People are not coming back as often as they should.",
+  "Gross profit was 1.5 billion rupiah.",
+  "Net profit was 1.2 billion. That gap is where the extra cost is sitting.",
+  "Customers are not unhappy enough to leave in a wave.",
+  "They are unhappy enough that the next order is no longer automatic.",
+  "Three fixes, in this order.",
+  "Talk to customers in plain language. Too much of the follow-up never lands.",
+  "Make the product information easy for someone who has never bought from us.",
+  "Look again at the shipping partners. Deliveries are not moving the way they should.",
+  "We do those three before we add a new campaign.",
+  "Clearer conversations, clearer product pages, and a shipping review.",
+  "That's the period.",
+  "I'll stop there and take questions.",
 ]
+const cue = [0, 2, 4, 6, 8, 10, 12, 14, 18, 20]
 function playHeartbeat() {
   const ctx = new AudioContext()
   const thump = (when: number, freq: number) => {
@@ -160,7 +159,7 @@ function playHeartbeat() {
   setTimeout(() => ctx.close(), 800)
 }
 function Wave({
-  color = "bg-sky-600",
+  color = "bg-sky-700",
   small = false,
 }: {
   color?: string
@@ -190,382 +189,18 @@ function Wave({
   )
 }
 function Slide({
-  number = 4,
-  compact = false,
+  number = 1,
 }: {
   number?: number
   compact?: boolean
 }) {
-  const title = slides[number - 1] || "The next chapter"
-  const note = notes[number - 1]
-  const index = String(number).padStart(2, "0")
-  const heading = cn(
-    "font-semibold leading-[1.12] tracking-[-0.02em]",
-    compact ? "text-[8px]" : "text-[clamp(20px,2.1vw,34px)]",
-  )
+  const title = slides[number - 1] || slides[0]
   return (
-    <div
-      className={cn(
-        "relative flex h-full flex-col overflow-hidden bg-white text-[#182136]",
-        compact ? "p-1.5" : "px-[5%] py-[3.5%]",
-      )}
-    >
-      <div
-        className={cn(
-          "flex items-center gap-2 font-semibold text-slate-500",
-          compact ? "text-[4px]" : "text-[11px]",
-        )}
-      >
-        <span className="h-1.5 w-1.5 rounded-sm bg-indigo-500" />
-        FORM & FUNCTION
-        <span className="ml-auto font-normal tracking-[0.12em]">
-          DESIGN SYSTEM KEYNOTE
-        </span>
-      </div>
-      <div
-        className={cn(
-          "flex min-h-0 flex-1 flex-col",
-          compact ? "pt-1" : "pt-4",
-        )}
-      >
-        {number === 1 && (
-          <div className="flex flex-1 flex-col justify-center">
-            <p
-              className={cn(
-                "font-medium uppercase tracking-[0.16em] text-indigo-600",
-                compact ? "text-[4px]" : "text-[11px]",
-              )}
-            >
-              01 / Opening
-            </p>
-            <h2 className={cn(heading, "mt-2 max-w-[16ch]")}>{title}</h2>
-            {!compact && (
-              <p className="mt-4 max-w-[36ch] text-sm leading-6 text-slate-500">
-                {line(note)}
-              </p>
-            )}
-          </div>
-        )}
-        {number === 2 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <div
-              className={cn(
-                "mt-3 grid flex-1 grid-cols-2",
-                compact ? "gap-1" : "mt-5 gap-4",
-              )}
-            >
-              {[
-                ["In the room", "Eye contact stays with the audience."],
-                ["On the slide", "One idea, large enough to read."],
-              ].map(([label, copy]) => (
-                <div
-                  key={label}
-                  className={cn(
-                    "rounded-lg bg-slate-50",
-                    compact ? "p-1" : "p-4",
-                  )}
-                >
-                  <p
-                    className={cn(
-                      "font-semibold text-indigo-700",
-                      compact ? "text-[5px]" : "text-sm",
-                    )}
-                  >
-                    {label}
-                  </p>
-                  {!compact && (
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      {copy}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {number === 3 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <div
-              className={cn(
-                "mt-auto flex items-center",
-                compact ? "gap-0.5" : "gap-2",
-              )}
-            >
-              {["Voice", "Gesture", "Slide", "Room"].map((step, stepIndex) => (
-                <div
-                  key={step}
-                  className="flex min-w-0 flex-1 items-center gap-1"
-                >
-                  <div
-                    className={cn(
-                      "flex flex-1 items-center justify-center rounded-md bg-indigo-50 font-medium text-indigo-800",
-                      compact ? "h-4 text-[4px]" : "h-16 text-sm",
-                    )}
-                  >
-                    {step}
-                  </div>
-                  {stepIndex < 3 && (
-                    <span
-                      className={cn(
-                        "text-slate-300",
-                        compact ? "text-[5px]" : "text-lg",
-                      )}
-                    >
-                      →
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {number === 4 && (
-          <div className="flex min-h-0 flex-1 items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <h2 className={heading}>
-                Designed for flow
-                <br />
-                <span className="text-[#6862b1]">Not for friction.</span>
-              </h2>
-              {!compact && (
-                <p className="mt-4 max-w-[28ch] text-sm leading-6 text-slate-500">
-                  {line(note)}
-                </p>
-              )}
-            </div>
-            <div className={cn("flex", compact ? "gap-0.5" : "gap-2")}>
-              {[
-                [Mic, "Voice", "bg-[#e1e0f5]", "text-[#6860ac]"],
-                [Hand, "Gesture", "bg-[#dbeef0]", "text-[#43848d]"],
-                [Activity, "Feedback", "bg-[#e4e8f2]", "text-[#64789b]"],
-              ].map(([Icon, label, bg, color]) => (
-                <div
-                  key={label as string}
-                  className={cn(
-                    "flex flex-col items-center justify-center rounded-xl",
-                    bg as string,
-                    color as string,
-                    compact ? "h-6 w-4" : "h-24 w-16",
-                  )}
-                >
-                  <Icon className={compact ? "h-2 w-2" : "h-6 w-6"} />
-                  {!compact && (
-                    <span className="mt-2 text-[10px] font-medium">
-                      {label as string}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {number === 5 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <div
-              className={cn(
-                "mt-auto flex items-end",
-                compact ? "h-6 gap-1" : "h-28 gap-3",
-              )}
-            >
-              {[
-                ["Voice", 70],
-                ["Gesture", 45],
-                ["Gaze", 88],
-                ["Clicker", 20],
-              ].map(([label, amount]) => (
-                <div
-                  key={label as string}
-                  className="flex h-full flex-1 flex-col justify-end"
-                >
-                  <div
-                    className="rounded-t bg-indigo-500"
-                    style={{ height: `${amount}%` }}
-                  />
-                  {!compact && (
-                    <span className="mt-1 text-center text-[10px] text-slate-500">
-                      {label as string}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {number === 6 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <svg
-              viewBox="0 0 240 80"
-              className={cn("mt-auto w-full", compact ? "h-6" : "h-24")}
-              aria-hidden="true"
-            >
-              <path
-                d="M0 58 C30 58 40 20 70 22 C100 24 110 64 140 50 C170 36 190 18 240 14"
-                fill="none"
-                stroke="#4f46e5"
-                strokeWidth="3"
-              />
-              <path
-                d="M0 58 C30 58 40 20 70 22 C100 24 110 64 140 50 C170 36 190 18 240 14 V80 H0 Z"
-                fill="#e0e7ff"
-              />
-            </svg>
-          </div>
-        )}
-        {number === 7 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <div className={cn("mt-auto", compact ? "space-y-0.5" : "space-y-2")}>
-              {["This talk", "The questions", "The next session"].map(
-                (item, itemIndex) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "rounded-full bg-indigo-600",
-                        compact ? "h-1 w-1" : "h-2 w-2",
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-slate-600",
-                        compact ? "text-[5px]" : "text-sm",
-                      )}
-                    >
-                      {compact ? item : `0${itemIndex + 1}  ${item}`}
-                    </span>
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
-        )}
-        {number === 8 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <div
-              className={cn(
-                "mt-auto grid grid-cols-3",
-                compact ? "gap-1" : "gap-3",
-              )}
-            >
-              {[
-                ["92%", "Engaged"],
-                ["135", "WPM"],
-                ["4", "Fillers"],
-              ].map(([value, label]) => (
-                <div key={label} className="rounded-lg bg-slate-50 text-center">
-                  <p
-                    className={cn(
-                      "font-semibold text-indigo-700",
-                      compact ? "text-[7px]" : "py-3 text-2xl",
-                    )}
-                  >
-                    {value}
-                  </p>
-                  {!compact && (
-                    <p className="pb-3 text-[11px] text-slate-500">{label}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {number === 9 && (
-          <div className="flex min-h-0 flex-1 items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <h2 className={heading}>{title}</h2>
-              {!compact && (
-                <p className="mt-3 text-sm leading-6 text-slate-500">
-                  {line(note)}
-                </p>
-              )}
-            </div>
-            <svg
-              viewBox="0 0 120 80"
-              className={cn("shrink-0", compact ? "h-6 w-8" : "h-24 w-36")}
-              aria-hidden="true"
-            >
-              <rect width="120" height="80" rx="6" fill="#eef2ff" />
-              <rect x="18" y="14" width="46" height="28" rx="2" fill="#c7d2fe" />
-              <circle cx="28" cy="58" r="6" fill="#6366f1" />
-              <rect x="36" y="54" width="10" height="14" rx="2" fill="#4338ca" />
-              <circle cx="70" cy="60" r="4" fill="#94a3b8" />
-              <circle cx="84" cy="60" r="4" fill="#94a3b8" />
-              <circle cx="98" cy="60" r="4" fill="#94a3b8" />
-            </svg>
-          </div>
-        )}
-        {number === 10 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <div
-              className={cn(
-                "mt-auto rounded-md bg-slate-900 text-white",
-                compact ? "px-1 py-0.5 text-[4px]" : "px-4 py-3 text-sm",
-              )}
-            >
-              People at the back can{" "}
-              <span className="rounded bg-yellow-300 px-1 text-slate-900">
-                read every line
-              </span>
-            </div>
-          </div>
-        )}
-        {number === 11 && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <h2 className={heading}>{title}</h2>
-            <div className={cn("mt-auto", compact ? "space-y-0.5" : "space-y-2")}>
-              {["Slide title", "The sentence you just said", "One thing to remember"].map(
-                (row) => (
-                  <div
-                    key={row}
-                    className={cn(
-                      "flex items-center gap-2 border-b border-slate-100 text-slate-500",
-                      compact ? "text-[4px]" : "pb-1 text-sm",
-                    )}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-sm bg-indigo-400" />
-                    {row}
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
-        )}
-        {number === 12 && (
-          <div className="flex flex-1 flex-col justify-center">
-            <p
-              className={cn(
-                "font-medium uppercase tracking-[0.16em] text-indigo-600",
-                compact ? "text-[4px]" : "text-[11px]",
-              )}
-            >
-              12 / Close
-            </p>
-            <h2 className={cn(heading, "mt-2")}>{title}</h2>
-            {!compact && (
-              <p className="mt-4 max-w-[36ch] text-sm leading-6 text-slate-500">
-                {line(note)}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-      <div
-        className={cn(
-          "mt-2 flex justify-between border-t border-slate-200 text-slate-400",
-          compact ? "pt-0.5 text-[3px]" : "pt-3 text-[10px]",
-        )}
-      >
-        <span>Human first. Technology second.</span>
-        <span>
-          PresenterPlus 2025 <span className="ml-3">{index}</span>
-        </span>
-      </div>
-    </div>
+    <img
+      src={`/sample/${String(number).padStart(2, "0")}.jpg`}
+      alt={title}
+      className="h-full w-full object-contain"
+    />
   )
 }
 const paceSamples = [
@@ -605,7 +240,7 @@ function AcousticTimeline() {
             y={paceY(140)}
             width="640"
             height={paceY(120) - paceY(140)}
-            fill="#D1FAE5"
+            fill="#ecfdf5"
           />
           <path
             d={pacePath}
@@ -707,7 +342,7 @@ function AudiencePulse({ slide }: { slide: number }) {
                 (height, index) => (
                   <span
                     key={index}
-                    className="flex-1 rounded-sm bg-sky-500/80"
+                    className="flex-1 rounded-sm bg-sky-700/80"
                     style={{ height }}
                   />
                 ),
@@ -715,14 +350,14 @@ function AudiencePulse({ slide }: { slide: number }) {
             </div>
           </div>
         </section>
-        <section className="rounded-xl border border-amber-200/60 bg-amber-50/70 p-3.5">
+        <section className="rounded-xl bg-amber-50/70 p-3.5">
           <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium leading-relaxed text-amber-900">
             <Sparkles size={14} /> Live presentation coaching
           </div>
           <ul className="space-y-2 text-[13px] font-medium leading-relaxed text-amber-900">
             <li>
-              Pacing spiked to 185 WPM on Slide {slide}. Take a brief pause
-              before moving to the diagram.
+              Pacing spiked to 185 WPM on Slide {slide}. Pause before the
+              next figure.
             </li>
             <li>
               Sustained audience applause detected. Allow 2 seconds before
@@ -738,8 +373,8 @@ function AppShell() {
   const path = useLocation().pathname
   const view = path === "/" ? "presenter" : path.slice(1)
   const stage = view === "qa" || view === "audience"
-  const [slide, setSlide] = useState(4)
-  const [paragraph, setParagraph] = useState(1)
+  const [slide, setSlide] = useState(1)
+  const [paragraph, setParagraph] = useState(0)
   const [paused, setPaused] = useState(false)
   const [mic, setMic] = useState(true)
   const [laser, setLaser] = useState(true)
@@ -791,6 +426,9 @@ function AppShell() {
   const resizeAnalyticsRail = (percent: number) =>
     setAnalyticsRail(Math.round(Math.max(26, Math.min(58, percent))))
   useEffect(() => {
+    setParagraph(cue[slide - 1] ?? 0)
+  }, [slide])
+  useEffect(() => {
     const updateViewport = () => setViewportWidth(window.innerWidth)
     window.addEventListener("resize", updateViewport)
     return () => window.removeEventListener("resize", updateViewport)
@@ -838,12 +476,12 @@ function AppShell() {
   const download = () => {
     const blob = new Blob(
       [
-        `PresenterPlus — Design System Keynote\n\n${slides
+        `PresenterPlus — Finance Report\n\n${slides
           .map((title, index) => {
             const note = notes[index]
             return `Slide ${String(index + 1).padStart(2, "0")} — ${title}\n${line(note)}`
           })
-          .join("\n\n")}\n\nKey takeaways\nTechnology should amplify your presence.\nVoice, gesture and real-time feedback work together.\n\nPerformance\nAverage pace: 135 WPM\nEngagement: 92%\nFiller words: 4`,
+          .join("\n\n")}\n\nKey takeaways\nGross profit reached IDR 1.5 billion. Net profit reached IDR 1.2 billion.\nCommunication, product information, and shipping need work.\n\nPerformance\nAverage pace: 135 WPM\nEngagement: 92%\nFiller words: 4`,
       ],
       { type: "text/plain" },
     )
@@ -889,12 +527,13 @@ function AppShell() {
           <h1 className="truncate text-[15px] font-semibold text-slate-800">
             {view === "analytics"
               ? "Presentation Performance Report"
-              : "Design System Keynote"}
+              : "Finance Report"}
           </h1>
           <div className="flex shrink-0 items-center gap-3">
             {view === "analytics" ? (
-              <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 md:inline">
-                Completed Oct 7, 2026 (24 mins)
+              <span className="hidden items-center gap-1.5 text-xs text-slate-500 md:flex">
+                Completed Oct 7, 2026{" "}
+                <span className="font-mono">(24 mins)</span>
               </span>
             ) : (
               <span className="hidden items-center gap-1.5 text-xs text-slate-500 md:flex">
@@ -928,7 +567,7 @@ function AppShell() {
             >
               <Bell size={17} />
             </button>
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-[11px] font-semibold text-sky-800">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-700">
               AL
             </span>
           </div>
@@ -960,7 +599,7 @@ function AppShell() {
             Current presentation
           </span>
           <p className={cn("font-semibold text-slate-800", titleText)}>
-            Design System Keynote
+            Finance Report
           </p>
           <div
             className={cn(
@@ -975,7 +614,7 @@ function AppShell() {
               </>
             ) : (
               <>
-                <span className="h-1.5 w-1.5 rounded-full bg-green-600" /> Live
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Live
                 session{" "}
                 <span className="ml-auto font-mono">{time(754 + seconds)}</span>
               </>
@@ -1007,7 +646,7 @@ function AppShell() {
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium whitespace-nowrap transition-colors",
                   navText,
                   isActive
-                    ? "bg-sky-50 text-sky-800"
+                    ? "bg-sky-100 text-sky-700"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                 )
               }
@@ -1033,7 +672,7 @@ function AppShell() {
               "flex items-center gap-3 rounded-lg px-3 py-3 font-medium",
               navText,
               isActive
-                ? "bg-sky-50 text-sky-800"
+                ? "bg-sky-100 text-sky-700"
                 : "text-slate-600 hover:bg-slate-50",
             )
           }
@@ -1135,8 +774,8 @@ function AppShell() {
       >
         <span
           className={cn(
-            "h-10 w-[3px] rounded-full bg-slate-300 transition-colors group-hover:bg-sky-600 group-focus-visible:bg-sky-600",
-            resizingSidebar && "bg-sky-600",
+            "h-10 w-[3px] rounded-full bg-slate-300 transition-colors group-hover:bg-sky-700 group-focus-visible:bg-sky-700",
+            resizingSidebar && "bg-sky-700",
           )}
         />
       </div>
@@ -1153,7 +792,7 @@ function AppShell() {
         <div
           className={cn(
             "mx-auto flex max-w-[1680px] flex-col gap-2.5 px-4 py-3 xl:px-5",
-            view === "analytics"
+            view === "analytics" || view === "audience"
               ? "h-full min-h-0 overflow-hidden"
               : "min-h-full lg:h-full lg:min-h-0",
           )}
@@ -1162,7 +801,7 @@ function AppShell() {
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-white shadow-[0_4px_16px_rgba(15,23,42,0.05)] px-3 py-2">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-2 text-xs font-medium">
-                  <span className="h-1.5 w-1.5 rounded-full bg-sky-600" />{" "}
+                  <span className="h-1.5 w-1.5 rounded-full bg-sky-700" />{" "}
                   LECTURE MODE
                 </span>
                 <span className="h-4 border-l border-border" />
@@ -1178,7 +817,7 @@ function AppShell() {
                 onClick={() => setMic(!mic)}
                 className="flex items-center gap-3"
               >
-                <Wave small color={mic ? "bg-sky-600" : "bg-slate-300"} />
+                <Wave small color={mic ? "bg-sky-700" : "bg-slate-300"} />
                 <span className="text-xs text-slate-600">
                   {mic ? "Mic active" : "Mic muted"}
                 </span>
@@ -1198,8 +837,8 @@ function AppShell() {
                   pace === "fast"
                     ? "bg-amber-50 text-amber-800"
                     : pace === "slow"
-                      ? "bg-sky-50 text-sky-800"
-                      : "bg-green-50 text-green-700",
+                      ? "bg-sky-100 text-sky-700"
+                      : "bg-emerald-50 text-emerald-700",
                 )}
               >
                 {pace === "fast"
@@ -1210,7 +849,7 @@ function AppShell() {
               </button>
               <div className="flex items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-1.5 text-[11px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-600" />{" "}
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
                   Vision active
                 </span>
                 <BatteryFull size={18} />
@@ -1223,18 +862,18 @@ function AppShell() {
               {pace === "optimal" && (
                 <div
                   role="status"
-                  className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-xs"
+                  className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-emerald-50/80 px-4 py-2 text-xs"
                 >
-                  <span className="flex items-center gap-2 font-medium text-green-800">
+                  <span className="flex items-center gap-2 font-semibold text-emerald-700">
                     <Activity size={15} /> You're in a great rhythm
                   </span>
-                  <span className="text-slate-600">
+                  <span className="font-semibold text-emerald-700">
                     Your pace is clear, comfortable, and easy to follow.
                   </span>
                 </div>
               )}
               {pace === "fast" && (
-                <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs">
+                <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-amber-50 px-4 py-2 text-xs">
                   <span className="flex items-center gap-2 font-medium text-amber-800">
                     <Activity size={15} /> Speaking rate too fast 185 WPM
                   </span>
@@ -1252,9 +891,9 @@ function AppShell() {
               {pace === "slow" && (
                 <div
                   role="status"
-                  className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs"
+                  className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-sky-100 bg-sky-100 px-4 py-2 text-xs"
                 >
-                  <span className="flex items-center gap-2 font-medium text-sky-800">
+                  <span className="flex items-center gap-2 font-medium text-sky-700">
                     <Activity size={15} /> Pace is a little low 95 WPM
                   </span>
                   <span className="text-slate-600">
@@ -1276,12 +915,12 @@ function AppShell() {
                   <div className="relative flex min-h-[240px] flex-1 items-center justify-center overflow-hidden bg-slate-50 [container-type:size] lg:min-h-0">
                     <div
                       className={cn(
-                        "relative aspect-video w-[min(100cqw,177.777777cqh)] max-w-full shrink-0 overflow-hidden bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] ring-4 ring-inset",
+                        "relative aspect-video w-[min(100cqw,177.777777cqh)] max-w-full shrink-0 overflow-hidden bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] ring-2 ring-inset",
                         pace === "fast"
                           ? "ring-amber-400"
                           : pace === "slow"
-                            ? "ring-sky-400"
-                            : "ring-green-500",
+                            ? "ring-sky-700"
+                            : "ring-emerald-500",
                       )}
                     >
                       <div
@@ -1298,10 +937,10 @@ function AppShell() {
                           onClick={() => setZoom(!zoom)}
                           className="absolute right-[24%] top-[63%] flex flex-col items-start"
                         >
-                          <span className="relative h-5 w-5 rounded-full border border-sky-600/40 bg-sky-100 shadow-[0_0_20px_#0284c733]">
-                            <span className="absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-sky-600" />
+                          <span className="relative h-5 w-5 rounded-full border border-sky-700/40 bg-sky-100 shadow-[0_0_20px_#0369a133]">
+                            <span className="absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-sky-700" />
                           </span>
-                          <span className="ml-4 mt-2 flex items-center gap-2 rounded-md border border-sky-200 bg-white/95 px-2.5 py-2 text-[10px] text-sky-700">
+                          <span className="ml-4 mt-2 flex items-center gap-2 rounded-md border border-sky-100 bg-white/95 px-2.5 py-2 text-[10px] text-sky-700">
                             <MousePointer2 size={11} /> Point + voice{" "}
                             <span className="border-l border-slate-200 pl-2 text-slate-900">
                               {zoom ? "Reset view" : "Zoom diagram"}
@@ -1325,7 +964,7 @@ function AppShell() {
                   </div>
                   <div className="flex shrink-0 items-center justify-between border-t border-slate-100 px-3 py-2">
                     <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-600" />{" "}
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
                       Presenting to audience{" "}
                       <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px]">
                         1920 × 1080
@@ -1418,8 +1057,8 @@ function AppShell() {
                 >
                   <span
                     className={cn(
-                      "h-10 w-[3px] rounded-full bg-slate-300 transition-colors group-hover:bg-sky-600 group-focus-visible:bg-sky-600",
-                      resizingSplit && "bg-sky-600",
+                      "h-10 w-[3px] rounded-full bg-slate-300 transition-colors group-hover:bg-sky-700 group-focus-visible:bg-sky-700",
+                      resizingSplit && "bg-sky-700",
                     )}
                   />
                 </div>
@@ -1433,7 +1072,7 @@ function AppShell() {
                       teleprompter
                     </span>
                     <span className="flex items-center gap-1.5 rounded-full bg-sky-100 px-2 py-1 text-[10px] text-sky-700">
-                      <span className="h-1 w-1 rounded-full bg-sky-600" /> Voice
+                      <span className="h-1 w-1 rounded-full bg-sky-700" /> Voice
                       synced
                     </span>
                   </div>
@@ -1448,7 +1087,7 @@ function AppShell() {
                         {script[paragraph - 1]}
                       </p>
                     )}
-                    <div className="relative -mx-1 rounded-lg border-l-[3px] border-sky-600 bg-[#E0F2FE] px-3 py-2">
+                    <div className="relative -mx-1 rounded-lg border-l-[3px] border-sky-700 bg-sky-100 px-3 py-2">
                       <span className="mb-2 block text-[10px] font-semibold tracking-[0.16em] text-sky-700">
                         YOU'RE HERE
                       </span>
@@ -1499,10 +1138,10 @@ function AppShell() {
                 <span className="h-2 w-2 animate-pulse rounded-full bg-red-600" />{" "}
                 Q&A audio bookmarked for post-talk review
               </div>
-              <span className="mb-4 rounded-full bg-indigo-50 px-3 py-1 text-[11px] tracking-widest text-indigo-600">
+              <span className="mb-4 rounded-full bg-sky-100 px-3 py-1 text-[11px] tracking-widest text-sky-700">
                 SPACE FOR CONVERSATION
               </span>
-              <h2 className="text-[28px] font-semibold tracking-[0.04em] text-indigo-600">
+              <h2 className="text-[28px] font-semibold tracking-[0.04em] text-sky-700">
                 Q&A SESSION ACTIVE
               </h2>
               <div className="relative my-4 flex h-44 w-44 items-center justify-center">
@@ -1523,7 +1162,7 @@ function AppShell() {
                     cy="120"
                     r="108"
                     fill="none"
-                    stroke="#4f46e5"
+                    stroke="#0369a1"
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray="679"
@@ -1558,25 +1197,43 @@ function AppShell() {
             </section>
           )}
           {view === "audience" && (
-            <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-slate-50">
-              <div className="flex items-center justify-between px-5 py-3 text-[11px] text-slate-600">
+            <section
+              id="audience-stage"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-white fullscreen:h-screen fullscreen:w-screen fullscreen:rounded-none fullscreen:border-0"
+            >
+              <div className="flex shrink-0 items-center justify-between bg-white px-5 py-3 text-[11px] text-slate-600">
                 <span className="flex items-center gap-2">
                   <Radio size={13} /> AUDIENCE SHARED DISPLAY
                 </span>
-                <button
-                  onClick={download}
-                  className="flex items-center gap-2 rounded-md bg-white px-3 py-2 shadow-sm"
-                >
-                  <QrCode size={16} /> Structured session notes{" "}
-                  <Download size={13} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={download}
+                    className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 shadow-sm"
+                  >
+                    <QrCode size={16} /> Structured session notes{" "}
+                    <Download size={13} />
+                  </button>
+                  <button
+                    aria-label="Fullscreen slide"
+                    onClick={() => {
+                      const element = document.getElementById("audience-stage")
+                      if (document.fullscreenElement) document.exitFullscreen()
+                      else element?.requestFullscreen?.()
+                    }}
+                    className="rounded-md bg-slate-50 p-2 text-slate-600 shadow-sm"
+                  >
+                    <Maximize2 size={16} />
+                  </button>
+                </div>
               </div>
-              <div className="mx-auto aspect-[16/9] min-h-0 w-full flex-1 lg:aspect-auto">
-                <Slide number={slide} />
+              <div className="flex min-h-0 w-full flex-1 items-center justify-center [container-type:size]">
+                <div className="aspect-video w-[min(100cqw,177.777777cqh)] overflow-hidden">
+                  <Slide number={slide} />
+                </div>
               </div>
               <div className="shrink-0 bg-[#0f172a] px-6 py-3 text-white">
                 <div className="mb-3 flex items-center gap-2 text-[11px] text-slate-300">
-                  <Mic size={12} className="text-sky-300" /> LIVE CAPTIONS{" "}
+                  <Mic size={12} className="text-sky-100" /> LIVE CAPTIONS{" "}
                   <span className="ml-auto">English auto-transcribed</span>
                 </div>
                 <p className="text-[24px] font-medium leading-relaxed">
@@ -1595,46 +1252,53 @@ function AppShell() {
                 {[
                   {
                     label: "Average pacing",
-                    value: "135 WPM",
-                    unit: "",
-                    badge: "Optimal rhythm",
+                    value: "135",
+                    unit: "WPM",
+                    dot: "bg-emerald-500",
+                    status: "Target zone (120–140)",
                   },
                   {
                     label: "Filler words",
                     value: "4",
                     unit: "words",
-                    badge: "Low filler count",
+                    dot: "bg-emerald-500",
+                    status: "0.16 per min (Excellent)",
                   },
                   {
                     label: "Q&A Duration",
                     value: "05:12",
                     unit: "",
-                    badge: "Active Q&A",
+                    dot: "bg-sky-700",
+                    status: "22% of session",
                   },
                   {
                     label: "Audience Engagement",
                     value: "92%",
                     unit: "",
-                    badge: "High interest",
+                    dot: "bg-emerald-500",
+                    status: "High (Top 10%)",
                   },
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="flex flex-col rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
+                    className="flex flex-col rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
                   >
-                    <span className="text-xs text-slate-500">{stat.label}</span>
-                    <div className="mt-2 flex h-8 items-baseline gap-1.5">
-                      <span className="font-mono text-[32px] font-bold leading-none text-slate-900">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      {stat.label}
+                    </span>
+                    <div className="mt-2 flex items-baseline gap-1.5">
+                      <span className="font-mono text-3xl font-bold leading-none text-slate-900">
                         {stat.value}
                       </span>
                       {stat.unit && (
-                        <span className="text-[13px] text-slate-500">
+                        <span className="text-xs font-medium text-slate-400">
                           {stat.unit}
                         </span>
                       )}
                     </div>
-                    <span className="mt-3 w-fit rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                      {stat.badge}
+                    <span className="mt-3 flex items-center gap-1.5 text-[11px]">
+                      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", stat.dot)} />
+                      <span className="text-slate-500">{stat.status}</span>
                     </span>
                   </div>
                 ))}
@@ -1654,33 +1318,33 @@ function AppShell() {
                       </p>
                     </div>
                     <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-slate-500">
-                      <span className="h-2.5 w-2.5 rounded-sm border border-emerald-300 bg-emerald-100" />
+                      <span className="h-2.5 w-2.5 rounded-sm bg-[#e1fcef]" />
                       Target Zone (120–140 WPM)
                     </span>
                   </div>
-                  <div className="mt-4 flex gap-1 rounded-xl border border-slate-200/50 bg-slate-100/80 p-1">
-                    <span className="flex flex-[50] items-center justify-between rounded-lg border border-slate-200/60 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs">
+                  <div className="mt-8 flex">
+                    <span className="flex-[50] border-b-2 border-sky-700 pb-1.5 text-xs font-semibold text-sky-700">
                       Slide 1–3 (12m)
                     </span>
-                    <span className="flex-[19] rounded-lg bg-white/60 px-2 py-1.5 text-center text-xs font-medium text-slate-500 hover:bg-white">
+                    <span className="flex-[19] border-b-2 border-slate-200 pb-1.5 text-center text-xs font-medium text-slate-500">
                       Slide 4–6
                     </span>
-                    <span className="flex-[31] rounded-lg bg-white/60 px-2 py-1.5 text-center text-xs font-medium text-slate-500 hover:bg-white">
-                      Slide 7–12
+                    <span className="flex-[31] border-b-2 border-slate-200 pb-1.5 text-center text-xs font-medium text-slate-500">
+                      Slide 7–10
                     </span>
                   </div>
                   <svg
-                    viewBox="0 0 700 278"
+                    viewBox="0 0 700 286"
                     className="mt-4 min-h-0 w-full flex-1"
                     role="img"
-                    aria-label="Pacing timeline with a 185 words per minute spike on slide 5"
+                    aria-label="Pacing timeline with a 185 words per minute spike on the customer data slide"
                   >
                     <rect
                       x="45"
-                      y="146"
+                      y="171"
                       width="625"
-                      height="48"
-                      fill="#16a34a10"
+                      height="36"
+                      fill="#e1fcef"
                     />
                     {[63, 108, 153, 198, 243].map((position, index) => (
                       <g key={position}>
@@ -1702,41 +1366,71 @@ function AppShell() {
                       </g>
                     ))}
                     <path
-                      d="M45 177 L75 168 L108 180 L140 149 L170 160 L202 84 L227 36 L250 103 L280 160 L310 169 L345 160 L375 188 L405 168 L440 158 L470 176 L500 163 L535 180 L560 162 L595 173 L628 161 L670 175"
-                      stroke="#0284c7"
-                      strokeWidth="2.5"
+                      d="M45 177 C55 174 65 168 75 168 C86 168 97 180 108 180 C118.7 180 129.3 149 140 149 C150 149 160 160 170 160 C180.7 160 191.3 106.9 202 84 C210.3 66.1 218.7 36 227 36 C234.7 36 242.3 84.6 250 103 C260 127.1 270 151 280 160 C290 169 300 169 310 169 C321.7 169 333.3 160 345 160 C355 160 365 188 375 188 C385 188 395 172.8 405 168 C416.7 162.4 428.3 158 440 158 C450 158 460 176 470 176 C480 176 490 163 500 163 C511.7 163 523.3 180 535 180 C543.3 180 551.7 162 560 162 C571.7 162 583.3 173 595 173 C606 173 617 161 628 161 C642 161 656 170.3 670 175"
                       fill="none"
+                      stroke="#0369a1"
+                      strokeWidth="2.5"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
                     />
-                    <circle cx="264" cy="129" r="3" fill="#0284c7" />
-                    <circle cx="362" cy="176" r="3" fill="#0284c7" />
-                    <circle cx="514" cy="170" r="3" fill="#0284c7" />
-                    <foreignObject x="168" y="170" width="118" height="22">
-                      <div className="w-max rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] text-slate-600">
-                        08:24 Laughter
+                    <line
+                      x1="227"
+                      x2="227"
+                      y1="42"
+                      y2="256"
+                      stroke="#94a3b8"
+                      strokeWidth="1"
+                      strokeDasharray="3 3"
+                    />
+                    <circle cx="227" cy="36" r="4" fill="#dc2626" />
+                    <foreignObject x="128" y="6" width="180" height="20">
+                      <div className="w-max rounded bg-slate-900/90 px-1.5 py-0.5 text-[10px] font-mono leading-none text-white shadow-sm backdrop-blur-sm">
+                        185 WPM (Slide 5)
                       </div>
                     </foreignObject>
-                    <foreignObject x="308" y="190" width="158" height="22">
-                      <div className="w-max rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] text-slate-600">
-                        12:10 Reflective pause
-                      </div>
-                    </foreignObject>
-                    <foreignObject x="470" y="178" width="130" height="22">
-                      <div className="w-max rounded-md bg-white/95 px-1.5 py-0.5 text-[10px] text-slate-600">
-                        18:00 Q&A began
-                      </div>
-                    </foreignObject>
-                    <circle cx="227" cy="36" r="5" fill="#dc2626" />
-                    <foreignObject x="246" y="2" width="268" height="30">
-                      <div className="w-max text-[11px] font-semibold text-red-600">
-                        185 WPM Slide 5 (Pacing Spike)
-                      </div>
-                    </foreignObject>
+                    {[
+                      { x: 263.8, y: 134.7, label: "08:24 Laughter" },
+                      { x: 361.8, y: 176.5, label: "12:10 Reflective pause" },
+                      { x: 513.8, y: 168.8, label: "18:00 Q&A began" },
+                    ].map((event) => (
+                      <g key={event.label} className="group">
+                        <circle
+                          cx={event.x}
+                          cy={event.y}
+                          r="8"
+                          fill="transparent"
+                          className="cursor-pointer"
+                        >
+                          <title>{event.label}</title>
+                        </circle>
+                        <circle
+                          cx={event.x}
+                          cy={event.y}
+                          r="3.5"
+                          fill="white"
+                          stroke="#0369a1"
+                          strokeWidth="1.5"
+                        />
+                        <foreignObject
+                          x={event.x - 58}
+                          y={event.y - 26}
+                          width="130"
+                          height="20"
+                          className="pointer-events-none opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                          <div className="w-max rounded bg-white/80 px-1.5 py-0.5 text-[10px] text-slate-500 shadow-sm">
+                            {event.label}
+                          </div>
+                        </foreignObject>
+                      </g>
+                    ))}
                     {[0, 4, 8, 12, 16, 20, 24].map((minute, index) => (
                       <text
                         key={minute}
-                        x={45 + index * 104}
-                        y="269"
-                        fill="#94a3b8"
+                        x={index === 6 ? 670 : 45 + index * 104}
+                        y="274"
+                        textAnchor={index === 6 ? "end" : "start"}
+                        fill="#64748b"
                         fontSize="10"
                       >
                         {minute} min
@@ -1805,8 +1499,8 @@ function AppShell() {
                 >
                   <span
                     className={cn(
-                      "h-10 w-[3px] rounded-full bg-slate-300 transition-colors group-hover:bg-sky-600 group-focus-visible:bg-sky-600",
-                      resizingAnalytics && "bg-sky-600",
+                      "h-10 w-[3px] rounded-full bg-slate-300 transition-colors group-hover:bg-sky-700 group-focus-visible:bg-sky-700",
+                      resizingAnalytics && "bg-sky-700",
                     )}
                   />
                 </div>
@@ -1815,27 +1509,25 @@ function AppShell() {
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       AI delivery coaching
                     </h2>
-                    <div className="mt-3 space-y-3">
-                      <div className="rounded-xl border border-slate-200/80 border-l-4 border-l-amber-500 bg-white p-4 shadow-sm">
-                        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-900">
-                          <AlertCircle size={12} className="text-amber-500" />{" "}
-                          Give ideas room to land
-                        </span>
-                        <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">
-                          Slow down during Slides 5-7 where pace reached 185
-                          WPM. Add deliberate 2-second pauses after key points.
-                        </p>
+                    <div className="mt-3 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-purple-50/30 to-white p-4">
+                      <div className="flex w-fit items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                        <Sparkles size={11} /> AI Insight
                       </div>
-                      <div className="rounded-xl border border-slate-200/80 border-l-4 border-l-slate-300 bg-white p-4 shadow-sm">
-                        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-900">
-                          <Sparkles size={12} className="text-slate-400" /> Pause
-                          over filler words
-                        </span>
-                        <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">
-                          4 filler words detected (&apos;um&apos;). Replacing
-                          them with silence will improve authority.
-                        </p>
-                      </div>
+                      <p className="mt-3 text-[13px] font-semibold text-slate-900">
+                        Let the figures land
+                      </p>
+                      <p className="mt-1 text-[13px] leading-relaxed text-slate-600">
+                        Slow down on Slides 5–7, from customer data through
+                        satisfaction, where pace hit 185 WPM. Pause after the
+                        profit numbers.
+                      </p>
+                      <p className="mt-3 border-t border-indigo-100 pt-3 text-[13px] font-semibold text-slate-900">
+                        Pause over filler words
+                      </p>
+                      <p className="mt-1 text-[13px] leading-relaxed text-slate-600">
+                        4 filler words detected (&apos;um&apos;). Replacing them
+                        with silence will improve authority.
+                      </p>
                     </div>
                   </div>
                   <div>
@@ -1844,11 +1536,11 @@ function AppShell() {
                     </h2>
                     <div className="mt-3 rounded-xl border border-slate-200/60 bg-slate-50 p-3.5">
                       <div className="flex justify-between text-xs text-slate-500">
-                        <span>Q&A segment Slide 3</span>
+                        <span>Q&A segment Slide 6</span>
                         <span>18:02</span>
                       </div>
                       <p className="mt-1.5 text-[13px] font-semibold text-slate-800">
-                        How does the gesture tracking work?
+                        Why is net profit 300 million below gross?
                       </p>
                       <div className="mt-3 flex items-center gap-3">
                         <button
@@ -1869,7 +1561,7 @@ function AppShell() {
                           small
                           color={
                             playing
-                              ? "bg-sky-600 animate-pulse"
+                              ? "bg-sky-700 animate-pulse"
                               : "bg-slate-400"
                           }
                         />
@@ -1888,49 +1580,49 @@ function AppShell() {
                         3 Off-Pace Slides
                       </span>
                     </div>
-                    <div className="mt-3 space-y-3.5 rounded-xl border border-slate-200/60 bg-slate-50 p-3.5">
+                    <div className="mt-3 flex h-3 overflow-hidden rounded-full">
+                      <div className="bg-amber-500/70" style={{ flex: 12 }} />
+                      <div className="bg-emerald-500" style={{ flex: 4.5 }} />
+                      <div className="bg-sky-700" style={{ flex: 1.5 }} />
+                    </div>
+                    <div className="mt-3 space-y-3">
                       {[
                         {
-                          name: "Slide 1–3 (Opening)",
+                          name: "Slide 1–3 (Report open)",
                           time: "12:00 / Target 5:00",
-                          timeClass: "font-medium text-slate-500",
-                          bar: "w-[85%] bg-amber-500/70",
+                          swatch: "bg-amber-500/70",
                           note: "Overstayed by +7m (Took 50% of session time)",
                           noteClass: "text-slate-500",
                         },
                         {
-                          name: "Slide 4–6 (Core Content)",
+                          name: "Slide 4–6 (The numbers)",
                           time: "4:30 / Target 5:00",
-                          timeClass: "font-medium text-slate-500",
-                          bar: "w-[45%] bg-emerald-500/65",
+                          swatch: "bg-emerald-500",
                           note: "On Track (Balanced delivery)",
                           noteClass: "text-slate-400",
                         },
                         {
-                          name: "Slide 7–12 (Conclusion)",
+                          name: "Slide 7–10 (Close)",
                           time: "1:30 / Target 8:00",
-                          timeClass: "font-medium text-slate-500",
-                          bar: "w-[18%] bg-blue-500/65",
-                          note: "Rushed by -6.5m (Averaged only 15s per slide)",
+                          swatch: "bg-sky-700",
+                          note: "Rushed by -6.5m (Averaged 22s per slide)",
                           noteClass: "text-slate-500",
                         },
                       ].map((item) => (
                         <div key={item.name}>
                           <div className="flex items-baseline justify-between gap-2">
-                            <span className="text-[12px] font-semibold text-slate-800">
+                            <span className="flex min-w-0 items-center gap-1.5 text-[12px] font-semibold text-slate-800">
+                              <span
+                                className={cn(
+                                  "h-2 w-2 shrink-0 rounded-sm",
+                                  item.swatch,
+                                )}
+                              />
                               {item.name}
                             </span>
-                            <span
-                              className={cn(
-                                "shrink-0 text-[11px]",
-                                item.timeClass,
-                              )}
-                            >
+                            <span className="shrink-0 text-[11px] font-medium text-slate-500">
                               {item.time}
                             </span>
-                          </div>
-                          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-200">
-                            <div className={cn("h-full rounded-full", item.bar)} />
                           </div>
                           <p className={cn("mt-1 text-[11px]", item.noteClass)}>
                             {item.note}
@@ -1964,7 +1656,7 @@ function AppShell() {
                     onClick={() => setSlide(index + 1)}
                     title={
                       index === 2
-                        ? "Voice recall: Jump to Slide 3 Architecture"
+                        ? "Voice recall: Jump to Slide 3 Overall Sales Report"
                         : title
                     }
                     className="group w-[92px] shrink-0 text-left"
@@ -1973,7 +1665,7 @@ function AppShell() {
                       className={cn(
                         "aspect-video overflow-hidden rounded-md border-2 transition",
                         slide === index + 1
-                          ? "border-sky-600"
+                          ? "border-sky-700"
                           : "border-transparent opacity-60 group-hover:opacity-100",
                       )}
                     >
@@ -2082,19 +1774,19 @@ function AppShell() {
           "fixed inset-x-0 bottom-0 h-[3px]",
           !stage && "lg:left-[var(--sidebar-width)]",
           view === "qa"
-            ? "bg-indigo-600"
+            ? "bg-sky-700"
             : pace === "fast"
               ? "bg-amber-500"
               : pace === "slow"
-                ? "bg-sky-500"
-                : "bg-green-600",
+                ? "bg-sky-700"
+                : "bg-emerald-500",
         )}
       />
       )}
       {notice && (
         <div
           role="status"
-          className="fixed bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-sky-200 bg-white px-5 py-4 text-xs shadow-lg"
+          className="fixed bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-sky-100 bg-white px-5 py-4 text-xs shadow-lg"
         >
           <Check size={16} className="text-sky-700" />
           {notice}
@@ -2140,7 +1832,7 @@ function AppShell() {
                   onClick={item.set}
                   className={cn(
                     "flex h-6 w-11 rounded-full p-1",
-                    item.value ? "justify-end bg-sky-600" : "bg-slate-300",
+                    item.value ? "justify-end bg-sky-700" : "bg-slate-300",
                   )}
                 >
                   <span className="h-4 w-4 rounded-full bg-white" />
@@ -2149,7 +1841,7 @@ function AppShell() {
             ))}
             <div className="border-t border-border pt-4 text-xs text-slate-500">
               Pacing target{" "}
-              <span className="float-right text-green-700">120–140 WPM</span>
+              <span className="float-right text-emerald-700">120–140 WPM</span>
             </div>
             <p className="mt-6 text-xs leading-5 text-slate-500">
               Demo session Microphone and vision states are simulated. No
