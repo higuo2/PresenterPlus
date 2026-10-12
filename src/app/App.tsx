@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import InteractionGuide from "./InteractionGuide/IntereactionGuide"
 import type { CSSProperties } from "react"
 import {
   createBrowserRouter,
@@ -379,6 +380,7 @@ function AppShell() {
   const [mic, setMic] = useState(true)
   const [laser, setLaser] = useState(true)
   const [settings, setSettings] = useState(false)
+  const [help, setHelp] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [preferredSidebarWidth, setPreferredSidebarWidth] = useState(() => {
     try {
@@ -513,6 +515,7 @@ function AppShell() {
           </button>
           <NavLink
             to="/"
+            onClick={() => setHelp(false)}
             className="flex items-center gap-2.5 whitespace-nowrap"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
@@ -640,12 +643,15 @@ function AppShell() {
               key={href}
               to={href}
               end
-              onClick={() => setSidebarOpen(false)}
+              onClick={() => {
+                setSidebarOpen(false)
+                setHelp(false)
+              }}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium whitespace-nowrap transition-colors",
                   navText,
-                  isActive
+                  isActive && !help
                     ? "bg-sky-100 text-sky-700"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                 )
@@ -666,12 +672,15 @@ function AppShell() {
         </p>
         <NavLink
           to="/analytics"
-          onClick={() => setSidebarOpen(false)}
+          onClick={() => {
+            setSidebarOpen(false)
+            setHelp(false)
+          }}
           className={({ isActive }) =>
             cn(
               "flex items-center gap-3 rounded-lg px-3 py-3 font-medium",
               navText,
-              isActive
+              isActive && !help
                 ? "bg-sky-100 text-sky-700"
                 : "text-slate-600 hover:bg-slate-50",
             )
@@ -693,14 +702,16 @@ function AppShell() {
             <Settings2 size={iconSize} /> Session settings
           </button>
           <button
-            onClick={() =>
-              setNotice(
-                "Use arrow keys to navigate slides. Open session settings to manage voice and laser controls.",
-              )
-            }
+            onClick={() => {
+              setHelp(true)
+              setSidebarOpen(false)
+            }}
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-slate-600 hover:bg-slate-50",
+              "flex w-full items-center gap-3 rounded-lg px-3 py-3",
               navText,
+              help
+                ? "bg-sky-100 text-sky-700"
+                : "text-slate-600 hover:bg-slate-50",
             )}
           >
             <CircleHelp size={iconSize} /> Help & shortcuts
@@ -1782,6 +1793,11 @@ function AppShell() {
                 : "bg-emerald-500",
         )}
       />
+      )}
+      {help && (
+        <div className="fixed inset-x-0 bottom-0 top-16 z-20 overflow-y-auto bg-background lg:left-[var(--sidebar-width)]">
+          <InteractionGuide onClose={() => setHelp(false)} />
+        </div>
       )}
       {notice && (
         <div
