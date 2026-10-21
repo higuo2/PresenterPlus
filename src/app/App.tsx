@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import InteractionGuide from "./InteractionGuide/IntereactionGuide"
 import type { CSSProperties } from "react"
 import {
@@ -112,7 +112,7 @@ const notes = [
     after: ".",
   },
 ]
-const line = (note: (typeof notes)[number]) =>
+const line = (note: typeof notes[number]) =>
   `${note.before}${note.highlight}${note.after}`
 const script = [
   "I'll take you through how the period closed, and the three places we should fix.",
@@ -139,6 +139,33 @@ const script = [
   "I'll stop there and take questions.",
 ]
 const cue = [0, 2, 4, 6, 8, 10, 12, 14, 18, 20]
+
+type CaptionEntry = {
+  slide: number
+  text: string
+  capturedAt: string
+}
+
+type SpeechRecognitionLike = {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start: () => void
+  stop: () => void
+  onresult: ((event: {
+    resultIndex: number
+    results: ArrayLike<{ 0: { transcript: string } isFinal: boolean }>
+  }) => void) | null
+  onerror: ((event: { error: string }) => void) | null
+  onend: (() => void) | null
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+
+type CaptionMessage = { type: "caption" caption: CaptionEntry } | {
+  type: "interim"
+  text: string
+} | { type: "status" active: boolean }
 function playHeartbeat() {
   const ctx = new AudioContext()
   const thump = (when: number, freq: number) => {
@@ -189,12 +216,7 @@ function Wave({
     </div>
   )
 }
-function Slide({
-  number = 1,
-}: {
-  number?: number
-  compact?: boolean
-}) {
+function Slide({ number = 1 }: { number?: number compact?: boolean }) {
   const title = slides[number - 1] || slides[0]
   return (
     <img
@@ -205,7 +227,8 @@ function Slide({
   )
 }
 const paceSamples = [
-  128, 130, 133, 132, 136, 140, 138, 144, 136, 148, 158, 170, 185, 152, 140, 134,
+  128, 130, 133, 132, 136, 140, 138, 144, 136, 148, 158, 170, 185, 152, 140,
+  134,
 ]
 const paceY = (wpm: number) => 64 - ((wpm - 100) / 100) * 56
 const pacePath = paceSamples
@@ -221,7 +244,9 @@ function AcousticTimeline() {
         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
           Session acoustic & pacing timeline
         </span>
-        <span className="font-mono text-[10px] text-slate-400">WPM 100–200</span>
+        <span className="font-mono text-[10px] text-slate-400">
+          WPM 100–200
+        </span>
       </div>
       <div className="relative h-16">
         <svg
@@ -327,7 +352,12 @@ function AudiencePulse({ slide }: { slide: number }) {
                 key={label}
                 className="rounded-xl border border-slate-100 bg-slate-50 p-3"
               >
-                <div className={cn("text-[20px] font-semibold leading-none", color)}>
+                <div
+                  className={cn(
+                    "text-[20px] font-semibold leading-none",
+                    color,
+                  )}
+                >
                   {value}
                 </div>
                 <div className="mt-1.5 text-[10px] text-slate-500">{label}</div>
@@ -357,8 +387,8 @@ function AudiencePulse({ slide }: { slide: number }) {
           </div>
           <ul className="space-y-2 text-[13px] font-medium leading-relaxed text-amber-900">
             <li>
-              Pacing spiked to 185 WPM on Slide {slide}. Pause before the
-              next figure.
+              Pacing spiked to 185 WPM on Slide {slide}. Pause before the next
+              figure.
             </li>
             <li>
               Sustained audience applause detected. Allow 2 seconds before
@@ -377,7 +407,7 @@ function AppShell() {
   const [slide, setSlide] = useState(1)
   const [paragraph, setParagraph] = useState(0)
   const [paused, setPaused] = useState(false)
-  const [mic, setMic] = useState(true)
+  const [mic, setMic] = useState(false)
   const [laser, setLaser] = useState(true)
   const [settings, setSettings] = useState(false)
   const [help, setHelp] = useState(false)
@@ -401,6 +431,7 @@ function AppShell() {
   const [resizingSplit, setResizingSplit] = useState(false)
   const [analyticsRail, setAnalyticsRail] = useState(36)
   const [resizingAnalytics, setResizingAnalytics] = useState(false)
+  const slideRef = useRef(slide)
   const maxSidebarWidth = Math.max(224, Math.min(400, viewportWidth - 720))
   const sidebarWidth = Math.min(preferredSidebarWidth, maxSidebarWidth)
   const maxTeleprompterWidth = Math.max(
@@ -429,6 +460,7 @@ function AppShell() {
     setAnalyticsRail(Math.round(Math.max(26, Math.min(58, percent))))
   useEffect(() => {
     setParagraph(cue[slide - 1] ?? 0)
+    slideRef.current = slide
   }, [slide])
   useEffect(() => {
     const updateViewport = () => setViewportWidth(window.innerWidth)
@@ -449,6 +481,20 @@ function AppShell() {
   const [playing, setPlaying] = useState(false)
   const [zoom, setZoom] = useState(false)
   const [pace, setPace] = useState<"optimal" | "fast" | "slow">("optimal")
+  const [captions, setCaptions] = useState<CaptionEntry[]>(() => {
+    try {
+      const savedCaptions = localStorage.getItem("presenterplus-captions")
+      return savedCaptions ? JSON.parse(savedCaptions) as CaptionEntry[] : []
+    } catch {
+      return []
+    }
+  })
+  const [interimCaption, setInterimCaption] = useState("")
+  const [captionStatus, setCaptionStatus] =
+    useState<"idle" | "listening" | "unsupported">("idle")
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const shouldListenRef = useRef(false)
+  const captionChannelRef = useRef<BroadcastChannel | null>(null)
   useEffect(() => {
     const timer = setInterval(() => {
       if (!paused) setSeconds((value) => value + 1)
@@ -463,6 +509,34 @@ function AppShell() {
     return () => clearTimeout(timer)
   }, [notice])
   useEffect(() => {
+    return () => {
+      shouldListenRef.current = false
+      recognitionRef.current?.stop()
+    }
+  }, [])
+  useEffect(() => {
+    if (!("BroadcastChannel" in window)) return
+    const channel = new BroadcastChannel("presenterplus-live-captions")
+    captionChannelRef.current = channel
+    channel.onmessage = (event: MessageEvent<CaptionMessage>) => {
+      const message = event.data
+      if (message.type === "caption") {
+        setCaptions((items) => [...items, message.caption])
+      }
+      if (message.type === "interim") setInterimCaption(message.text)
+      if (message.type === "status") setMic(message.active)
+    }
+    return () => {
+      captionChannelRef.current = null
+      channel.close()
+    }
+  }, [])
+  useEffect(() => {
+    try {
+      localStorage.setItem("presenterplus-captions", JSON.stringify(captions))
+    } catch {}
+  }, [captions])
+  useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return
       if (event.target instanceof HTMLInputElement) return
@@ -475,15 +549,119 @@ function AppShell() {
   }, [])
   const time = (value: number) =>
     `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`
+  const toggleCaptions = () => {
+    if (mic) {
+      shouldListenRef.current = false
+      recognitionRef.current?.stop()
+      setMic(false)
+      setInterimCaption("")
+      setCaptionStatus("idle")
+      captionChannelRef.current?.postMessage({ type: "interim", text: "" })
+      captionChannelRef.current?.postMessage({ type: "status", active: false })
+      return
+    }
+
+    const speechWindow = window as typeof window & {
+      SpeechRecognition?: SpeechRecognitionConstructor
+      webkitSpeechRecognition?: SpeechRecognitionConstructor
+    }
+    const Recognition =
+      speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition
+    if (!Recognition) {
+      setCaptionStatus("unsupported")
+      setNotice(
+        "Live captions need Chrome or another Speech Recognition browser",
+      )
+      return
+    }
+
+    const recognition = new Recognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = "en-US"
+    recognition.onresult = (event) => {
+      let interim = ""
+      let confirmed = ""
+      for (
+        let index = event.resultIndex;
+        index < event.results.length;
+        index += 1
+      ) {
+        const result = event.results[index]
+        if (result.isFinal) confirmed += `${result[0].transcript} `
+        else interim += result[0].transcript
+      }
+      setInterimCaption(interim.trim())
+      captionChannelRef.current?.postMessage({
+        type: "interim",
+        text: interim.trim(),
+      })
+      if (confirmed.trim()) {
+        const caption: CaptionEntry = {
+          slide: slideRef.current,
+          text: confirmed.trim(),
+          capturedAt: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        }
+        setCaptions((items) => [...items, caption])
+        captionChannelRef.current?.postMessage({ type: "caption", caption })
+      }
+    }
+    recognition.onerror = (event) => {
+      if (
+        event.error === "not-allowed" ||
+        event.error === "service-not-allowed"
+      ) {
+        shouldListenRef.current = false
+        setMic(false)
+        setCaptionStatus("idle")
+        setNotice("Microphone access is required for live captions")
+      }
+    }
+    recognition.onend = () => {
+      if (shouldListenRef.current) {
+        try {
+          recognition.start()
+        } catch {}
+      }
+    }
+    recognitionRef.current = recognition
+    shouldListenRef.current = true
+    try {
+      recognition.start()
+      setMic(true)
+      setCaptionStatus("listening")
+      captionChannelRef.current?.postMessage({ type: "status", active: true })
+      setNotice("Live captions started")
+    } catch {
+      setNotice("Unable to start live captions. Please try again.")
+    }
+  }
+  const slideCaptions = captions.filter((caption) => caption.slide === slide)
+  const liveCaption = [
+    slideCaptions.map((caption) => caption.text).join(" "),
+    interimCaption,
+  ]
+    .filter(Boolean)
+    .join(" ")
   const download = () => {
     const blob = new Blob(
       [
         `PresenterPlus — Finance Report\n\n${slides
           .map((title, index) => {
-            const note = notes[index]
-            return `Slide ${String(index + 1).padStart(2, "0")} — ${title}\n${line(note)}`
+            const transcript = captions
+              .filter((caption) => caption.slide === index + 1)
+              .map((caption) => `[${caption.capturedAt}] ${caption.text}`)
+              .join("\n")
+            return `Slide ${String(index + 1).padStart(2, "0")} — ${title}\n${transcript || "No live caption captured for this slide."}`
           })
-          .join("\n\n")}\n\nKey takeaways\nGross profit reached IDR 1.5 billion. Net profit reached IDR 1.2 billion.\nCommunication, product information, and shipping need work.\n\nPerformance\nAverage pace: 135 WPM\nEngagement: 92%\nFiller words: 4`,
+          .join(
+            "\n\n",
+          )}\n\nGenerated from ${captions.length} captured caption segment${
+          captions.length === 1 ? "" : "s"
+        }.`,
       ],
       { type: "text/plain" },
     )
@@ -492,7 +670,7 @@ function AppShell() {
     link.download = "PresenterPlus-session-notes.txt"
     link.click()
     URL.revokeObjectURL(link.href)
-    setNotice("Session notes exported")
+    setNotice("Structured session notes exported")
   }
   return (
     <div
@@ -545,14 +723,14 @@ function AppShell() {
               </span>
             )}
             {view !== "analytics" && (
-            <button
-              onClick={() =>
-                window.open("/audience", "_blank", "noopener,noreferrer")
-              }
-              className="hidden items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-600 sm:flex"
-            >
-              <Expand size={14} /> Audience display
-            </button>
+              <button
+                onClick={() =>
+                  window.open("/audience", "_blank", "noopener,noreferrer")
+                }
+                className="hidden items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-600 sm:flex"
+              >
+                <Expand size={14} /> Audience display
+              </button>
             )}
             <button
               aria-label="Session settings"
@@ -617,8 +795,8 @@ function AppShell() {
               </>
             ) : (
               <>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Live
-                session{" "}
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
+                Live session{" "}
                 <span className="ml-auto font-mono">{time(754 + seconds)}</span>
               </>
             )}
@@ -718,10 +896,7 @@ function AppShell() {
           </button>
           <div className="mt-4 border-t border-slate-100 px-3 pt-5">
             <span
-              className={cn(
-                "flex items-center gap-2 text-slate-500",
-                metaText,
-              )}
+              className={cn("flex items-center gap-2 text-slate-500", metaText)}
             >
               <ShieldCheck size={iconSize - 3} /> Private by design
             </span>
@@ -825,12 +1000,17 @@ function AppShell() {
                 </span>
               </div>
               <button
-                onClick={() => setMic(!mic)}
+                onClick={toggleCaptions}
+                aria-pressed={mic}
                 className="flex items-center gap-3"
               >
                 <Wave small color={mic ? "bg-sky-700" : "bg-slate-300"} />
                 <span className="text-xs text-slate-600">
-                  {mic ? "Mic active" : "Mic muted"}
+                  {captionStatus === "unsupported"
+                    ? "Captions unavailable"
+                    : mic
+                      ? "Captions listening"
+                      : "Start live captions"}
                 </span>
               </button>
               <button
@@ -1026,9 +1206,7 @@ function AppShell() {
                     setResizingSplit(true)
                   }}
                   onPointerMove={(event) => {
-                    if (
-                      !event.currentTarget.hasPointerCapture(event.pointerId)
-                    )
+                    if (!event.currentTarget.hasPointerCapture(event.pointerId))
                       return
                     const grid = event.currentTarget.parentElement
                     if (!grid) return
@@ -1037,9 +1215,7 @@ function AppShell() {
                     )
                   }}
                   onPointerUp={(event) => {
-                    if (
-                      event.currentTarget.hasPointerCapture(event.pointerId)
-                    )
+                    if (event.currentTarget.hasPointerCapture(event.pointerId))
                       event.currentTarget.releasePointerCapture(event.pointerId)
                     setResizingSplit(false)
                   }}
@@ -1076,69 +1252,69 @@ function AppShell() {
                 {view === "sensing" ? (
                   <AudiencePulse slide={slide} />
                 ) : (
-                <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
-                  <div className="flex items-center justify-between shrink-0 border-b border-border px-4 py-2.5">
-                    <span className="flex items-center gap-2 text-xs font-medium">
-                      <BookOpen size={15} className="text-slate-500" /> Smart
-                      teleprompter
-                    </span>
-                    <span className="flex items-center gap-1.5 rounded-full bg-sky-100 px-2 py-1 text-[10px] text-sky-700">
-                      <span className="h-1 w-1 rounded-full bg-sky-700" /> Voice
-                      synced
-                    </span>
-                  </div>
-                  <div
-                    tabIndex={0}
-                    role="region"
-                    aria-label="Teleprompter script"
-                    className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  >
-                    {paragraph > 0 && (
-                      <p className="text-sm leading-relaxed text-slate-500">
-                        {script[paragraph - 1]}
-                      </p>
-                    )}
-                    <div className="relative -mx-1 rounded-lg border-l-[3px] border-sky-700 bg-sky-100 px-3 py-2">
-                      <span className="mb-2 block text-[10px] font-semibold tracking-[0.16em] text-sky-700">
-                        YOU'RE HERE
+                  <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
+                    <div className="flex items-center justify-between shrink-0 border-b border-border px-4 py-2.5">
+                      <span className="flex items-center gap-2 text-xs font-medium">
+                        <BookOpen size={15} className="text-slate-500" /> Smart
+                        teleprompter
                       </span>
-                      <p className="text-[22px] font-semibold leading-[1.4]">
-                        {script[paragraph]}
-                      </p>
+                      <span className="flex items-center gap-1.5 rounded-full bg-sky-100 px-2 py-1 text-[10px] text-sky-700">
+                        <span className="h-1 w-1 rounded-full bg-sky-700" />{" "}
+                        Voice synced
+                      </span>
                     </div>
-                    {script[paragraph + 1] && (
-                      <p className="text-sm leading-relaxed text-slate-600">
-                        {script[paragraph + 1]}
-                      </p>
-                    )}
-                    {script[paragraph + 2] && (
-                      <p className="text-sm leading-relaxed text-slate-600">
-                        {script[paragraph + 2]}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between border-t border-border px-4 py-3 text-[10px] text-slate-500">
-                    <button
-                      onClick={() =>
-                        setParagraph((value) =>
-                          Math.min(script.length - 1, value + 1),
-                        )
-                      }
-                      className="flex items-center gap-1.5 hover:text-slate-900"
+                    <div
+                      tabIndex={0}
+                      role="region"
+                      aria-label="Teleprompter script"
+                      className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     >
-                      <Hand size={12} /> Swipe up to skip
-                    </button>
-                    <span className="h-3 border-l border-border" />
-                    <button
-                      onClick={() =>
-                        setParagraph((value) => Math.max(0, value - 1))
-                      }
-                      className="flex items-center gap-1.5 hover:text-slate-900"
-                    >
-                      <ArrowDown size={11} /> Swipe down to revisit
-                    </button>
-                  </div>
-                </section>
+                      {paragraph > 0 && (
+                        <p className="text-sm leading-relaxed text-slate-500">
+                          {script[paragraph - 1]}
+                        </p>
+                      )}
+                      <div className="relative -mx-1 rounded-lg border-l-[3px] border-sky-700 bg-sky-100 px-3 py-2">
+                        <span className="mb-2 block text-[10px] font-semibold tracking-[0.16em] text-sky-700">
+                          YOU'RE HERE
+                        </span>
+                        <p className="text-[22px] font-semibold leading-[1.4]">
+                          {script[paragraph]}
+                        </p>
+                      </div>
+                      {script[paragraph + 1] && (
+                        <p className="text-sm leading-relaxed text-slate-600">
+                          {script[paragraph + 1]}
+                        </p>
+                      )}
+                      {script[paragraph + 2] && (
+                        <p className="text-sm leading-relaxed text-slate-600">
+                          {script[paragraph + 2]}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-border px-4 py-3 text-[10px] text-slate-500">
+                      <button
+                        onClick={() =>
+                          setParagraph((value) =>
+                            Math.min(script.length - 1, value + 1),
+                          )
+                        }
+                        className="flex items-center gap-1.5 hover:text-slate-900"
+                      >
+                        <Hand size={12} /> Swipe up to skip
+                      </button>
+                      <span className="h-3 border-l border-border" />
+                      <button
+                        onClick={() =>
+                          setParagraph((value) => Math.max(0, value - 1))
+                        }
+                        className="flex items-center gap-1.5 hover:text-slate-900"
+                      >
+                        <ArrowDown size={11} /> Swipe down to revisit
+                      </button>
+                    </div>
+                  </section>
                 )}
               </div>
             </>
@@ -1245,14 +1421,32 @@ function AppShell() {
               <div className="shrink-0 bg-[#0f172a] px-6 py-3 text-white">
                 <div className="mb-3 flex items-center gap-2 text-[11px] text-slate-300">
                   <Mic size={12} className="text-sky-100" /> LIVE CAPTIONS{" "}
-                  <span className="ml-auto">English auto-transcribed</span>
+                  <span className="ml-auto">
+                    {mic
+                      ? interimCaption
+                        ? "Listening…"
+                        : "English auto-transcribed"
+                      : captions.length
+                        ? `${captions.length} captured segments`
+                        : "Start captions in presenter view"}
+                  </span>
                 </div>
                 <p className="text-[24px] font-medium leading-relaxed">
-                  {notes[slide - 1].before}
-                  <mark className="rounded bg-yellow-200 px-2 text-slate-900">
-                    {notes[slide - 1].highlight}
-                  </mark>
-                  {notes[slide - 1].after}
+                  {liveCaption ? (
+                    <>
+                      <mark className="rounded bg-yellow-200 px-2 text-slate-900">
+                        {liveCaption}
+                      </mark>
+                      {interimCaption && (
+                        <span className="ml-2 text-slate-300">· live</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-slate-300">
+                      Captions will appear here when the presenter starts the
+                      microphone.
+                    </span>
+                  )}
                 </p>
               </div>
             </section>
@@ -1308,7 +1502,12 @@ function AppShell() {
                       )}
                     </div>
                     <span className="mt-3 flex items-center gap-1.5 text-[11px]">
-                      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", stat.dot)} />
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                          stat.dot,
+                        )}
+                      />
                       <span className="text-slate-500">{stat.status}</span>
                     </span>
                   </div>
@@ -1316,7 +1515,9 @@ function AppShell() {
               </div>
               <div
                 className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:gap-0 lg:grid-cols-[minmax(0,1fr)_12px_var(--analytics-rail)]"
-                style={{ "--analytics-rail": `${analyticsRail}%` } as CSSProperties}
+                style={
+                  { "--analytics-rail": `${analyticsRail}%` } as CSSProperties
+                }
               >
                 <section className="flex min-h-0 flex-col overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <div className="flex items-baseline justify-between gap-3">
@@ -1652,7 +1853,9 @@ function AppShell() {
               <div className="mb-1.5 flex items-center justify-between">
                 <span className="flex items-center gap-2 text-[11px] text-slate-500">
                   <Layers size={13} /> SLIDE NAVIGATOR{" "}
-                  <span className="ml-2 text-slate-600">{slides.length} slides</span>
+                  <span className="ml-2 text-slate-600">
+                    {slides.length} slides
+                  </span>
                 </span>
                 <span className="text-[10px] text-slate-500">
                   {view === "qa"
@@ -1736,63 +1939,63 @@ function AppShell() {
               </div>
             </footer>
           ) : (
-          view !== "audience" && (
-          <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-            <div className="hidden items-center gap-2 text-[10px] text-slate-500 xl:flex">
-              <ShieldCheck size={13} />
-              <span>
-                Room sensing is processed on-device. No audience audio is
-                stored.
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {view !== "qa" && (
-                <button
-                  onClick={() => setLaser(!laser)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px]",
-                    laser ? "text-sky-700" : "text-slate-500",
+            view !== "audience" && (
+              <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+                <div className="hidden items-center gap-2 text-[10px] text-slate-500 xl:flex">
+                  <ShieldCheck size={13} />
+                  <span>
+                    Room sensing is processed on-device. No audience audio is
+                    stored.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {view !== "qa" && (
+                    <button
+                      onClick={() => setLaser(!laser)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px]",
+                        laser ? "text-sky-700" : "text-slate-500",
+                      )}
+                    >
+                      <MousePointer2 size={13} /> Laser {laser ? "on" : "off"}
+                    </button>
                   )}
-                >
-                  <MousePointer2 size={13} /> Laser {laser ? "on" : "off"}
-                </button>
-              )}
-              {view !== "qa" && (
-                <button
-                  onClick={() => setPaused(!paused)}
-                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px] text-slate-600"
-                >
-                  {paused ? <Play size={13} /> : <Pause size={13} />}{" "}
-                  {paused ? "Resume session" : "Pause session"}
-                </button>
-              )}
-              <NavLink
-                to={view === "qa" ? "/" : "/qa"}
-                className="flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-xs font-semibold text-white"
-              >
-                <Mic size={13} />
-                {view === "qa" ? "End Q&A" : "Enter Q&A mode"}
-              </NavLink>
-            </div>
-          </footer>
-          )
+                  {view !== "qa" && (
+                    <button
+                      onClick={() => setPaused(!paused)}
+                      className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px] text-slate-600"
+                    >
+                      {paused ? <Play size={13} /> : <Pause size={13} />}{" "}
+                      {paused ? "Resume session" : "Pause session"}
+                    </button>
+                  )}
+                  <NavLink
+                    to={view === "qa" ? "/" : "/qa"}
+                    className="flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-xs font-semibold text-white"
+                  >
+                    <Mic size={13} />
+                    {view === "qa" ? "End Q&A" : "Enter Q&A mode"}
+                  </NavLink>
+                </div>
+              </footer>
+            )
           )}
         </div>
       </main>
       {view !== "analytics" && (
-      <div
-        className={cn(
-          "fixed inset-x-0 bottom-0 h-[3px]",
-          !stage && "lg:left-[var(--sidebar-width)]",
-          view === "qa"
-            ? "bg-sky-700"
-            : pace === "fast"
-              ? "bg-amber-500"
-              : pace === "slow"
-                ? "bg-sky-700"
-                : "bg-emerald-500",
-        )}
-      />
+        <div
+          className={cn(
+            "fixed inset-x-0 bottom-0 h-[3px]",
+            !stage && "lg:left-[var(--sidebar-width)]",
+            view === "qa"
+              ? "bg-sky-700"
+              : pace === "fast"
+                ? "bg-amber-500"
+                : pace === "slow"
+                  ? "bg-sky-700"
+                  : "bg-emerald-500",
+          )}
+        />
       )}
       {help && (
         <div className="fixed inset-x-0 bottom-0 top-16 z-20 overflow-y-auto bg-background lg:left-[var(--sidebar-width)]">
@@ -1860,8 +2063,8 @@ function AppShell() {
               <span className="float-right text-emerald-700">120–140 WPM</span>
             </div>
             <p className="mt-6 text-xs leading-5 text-slate-500">
-              Demo session Microphone and vision states are simulated. No
-              camera or microphone access is requested.
+              Demo session Microphone and vision states are simulated. No camera
+              or microphone access is requested.
             </p>
             <button
               onClick={() => setSettings(false)}
