@@ -6,6 +6,7 @@ import {
   RouterProvider,
   NavLink,
   useLocation,
+  useNavigate,
 } from "react-router"
 import {
   Activity,
@@ -18,6 +19,7 @@ import {
   Bell,
   BookOpen,
   Check,
+  Camera,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -48,6 +50,13 @@ import {
 
 const cn = (...values: (string | false | undefined)[]) =>
   values.filter(Boolean).join(" ")
+type GestureDetector = {
+  estimateHands: (
+    input: HTMLVideoElement,
+    config?: { flipHorizontal?: boolean staticImageMode?: boolean },
+  ) => Promise<Array<{ keypoints: Array<{ x: number y: number }> }>>
+  dispose: () => void
+}
 const slides = [
   "Finance Report",
   "Introduction",
@@ -139,8 +148,7 @@ const script = [
   "I'll stop there and take questions.",
 ]
 const cue = [0, 2, 4, 6, 8, 10, 12, 14, 18, 20]
-const estimatedTeleprompterWpm = 132
-const teleprompterWpmByPace = { optimal: 132, fast: 185, slow: 95 }
+const teleprompterWpm = 132
 
 const estimateTeleprompterDelay = (
   sentence: string,
@@ -458,6 +466,7 @@ function AudiencePulse({ slide }: { slide: number }) {
 }
 function AppShell() {
   const path = useLocation().pathname
+  const navigate = useNavigate()
   const view = path === "/" ? "presenter" : path.slice(1)
   const stage = view === "qa" || view === "audience"
   const [slide, setSlide] = useState(1)
@@ -489,6 +498,7 @@ function AppShell() {
   const [resizingAnalytics, setResizingAnalytics] = useState(false)
   const slideRef = useRef(slide)
   const paragraphRef = useRef(paragraph)
+  const viewRef = useRef(view)
   const maxSidebarWidth = Math.max(224, Math.min(400, viewportWidth - 720))
   const sidebarWidth = Math.min(preferredSidebarWidth, maxSidebarWidth)
   const maxTeleprompterWidth = Math.max(
@@ -520,7 +530,6 @@ function AppShell() {
     setParagraph(nextParagraph)
     slideRef.current = slide
     paragraphRef.current = nextParagraph
-    setTeleprompterStatus(`Auto-scroll · ${estimatedTeleprompterWpm} WPM`)
   }, [slide])
   useEffect(() => {
     const updateViewport = () => setViewportWidth(window.innerWidth)
@@ -538,10 +547,15 @@ function AppShell() {
   const [notice, setNotice] = useState("")
   const [seconds, setSeconds] = useState(0)
   const [qaSeconds, setQaSeconds] = useState(299)
+  const [qaTranscript, setQaTranscript] = useState<CaptionEntry[]>([])
+  const [qaRecording, setQaRecording] = useState(false)
+  const [qaAudioUrl, setQaAudioUrl] = useState("")
+  const [gestureEnabled, setGestureEnabled] = useState(false)
+  const [gestureStatus, setGestureStatus] = useState("Camera off")
   const [playing, setPlaying] = useState(false)
   const [zoom, setZoom] = useState(false)
-  const [pace, setPace] = useState<"optimal" | "fast" | "slow">("optimal")
-  const teleprompterWpm = teleprompterWpmByPace[pace]
+  const pace = "optimal"
+  const [teleprompterAutoScroll, setTeleprompterAutoScroll] = useState(false)
   const [captions, setCaptions] = useState<CaptionEntry[]>(() => {
     try {
       const savedCaptions = localStorage.getItem("presenterplus-captions")
@@ -553,10 +567,18 @@ function AppShell() {
   const [interimCaption, setInterimCaption] = useState("")
   const [captionStatus, setCaptionStatus] =
     useState<"idle" | "listening" | "unsupported">("idle")
-  const [teleprompterStatus, setTeleprompterStatus] = useState("Voice ready")
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const shouldListenRef = useRef(false)
   const captionChannelRef = useRef<BroadcastChannel | null>(null)
+  const qaRecorderRef = useRef<MediaRecorder | null>(null)
+  const qaStreamRef = useRef<MediaStream | null>(null)
+  const qaChunksRef = useRef<Blob[]>([])
+  const gestureVideoRef = useRef<HTMLVideoElement | null>(null)
+  const gestureStreamRef = useRef<MediaStream | null>(null)
+  const gestureFrameRef = useRef<number | null>(null)
+  const gestureStableSinceRef = useRef<number | null>(null)
+  const gestureStartingRef = useRef(false)
+  const handDetectorRef = useRef<GestureDetector | null>(null)
   useEffect(() => {
     const timer = setInterval(() => {
       if (!paused) setSeconds((value) => value + 1)
@@ -565,6 +587,9 @@ function AppShell() {
     }, 1000)
     return () => clearInterval(timer)
   }, [paused, view])
+  useEffect(() => {
+    viewRef.current = view
+  }, [view])
   useEffect(() => {
     if (!notice) return
     const timer = setTimeout(() => setNotice(""), 4000)
@@ -599,7 +624,7 @@ function AppShell() {
     } catch {}
   }, [captions])
   useEffect(() => {
-    if (view !== "presenter" || paused) return
+    if (view !== "presenter" || paused || !teleprompterAutoScroll) return
     const end = cue[slide] ?? script.length
     if (paragraph >= end - 1) return
 
@@ -608,10 +633,9 @@ function AppShell() {
       const nextParagraph = Math.min(end - 1, paragraphRef.current + 1)
       paragraphRef.current = nextParagraph
       setParagraph(nextParagraph)
-      setTeleprompterStatus(`Auto-scroll · ${teleprompterWpm} WPM`)
     }, delay)
     return () => window.clearTimeout(timer)
-  }, [paragraph, paused, slide, teleprompterWpm, view])
+  }, [paragraph, paused, slide, teleprompterAutoScroll, view])
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return
@@ -631,8 +655,203 @@ function AppShell() {
     const boundedParagraph = Math.max(start, Math.min(end - 1, nextParagraph))
     paragraphRef.current = boundedParagraph
     setParagraph(boundedParagraph)
-    setTeleprompterStatus(`Auto-scroll · ${teleprompterWpm} WPM`)
   }
+  const stopQaRecording = () => {
+    const recorder = qaRecorderRef.current
+    if (recorder && recorder.state !== "inactive") recorder.stop()
+    else {
+      qaStreamRef.current?.getTracks().forEach((track) => track.stop())
+      qaStreamRef.current = null
+      setQaRecording(false)
+    }
+  }
+  const startQaRecording = async () => {
+    if (qaRecorderRef.current?.state === "recording") return
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setNotice("Audio recording is not available in this browser")
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      qaStreamRef.current = stream
+      qaChunksRef.current = []
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) qaChunksRef.current.push(event.data)
+      }
+      recorder.onstop = () => {
+        const audio = new Blob(qaChunksRef.current, { type: recorder.mimeType })
+        if (audio.size) {
+          setQaAudioUrl((previousUrl) => {
+            if (previousUrl) URL.revokeObjectURL(previousUrl)
+            return URL.createObjectURL(audio)
+          })
+          setNotice("Q&A audio bookmarked for post-talk review")
+        }
+        stream.getTracks().forEach((track) => track.stop())
+        qaStreamRef.current = null
+        setQaRecording(false)
+      }
+      recorder.start()
+      qaRecorderRef.current = recorder
+      setQaRecording(true)
+    } catch {
+      setNotice("Microphone access is required to record the Q&A")
+    }
+  }
+  const handleVoiceModeCommand = (transcript: string) => {
+    const command = transcript.toLowerCase().replace(/[^a-z0-9\s]/g, " ")
+    const qaWords = "q a|q and a|questions"
+    const entersQa = new RegExp(
+      `\\b(enter|start|open)\\s+(${qaWords})\\b`,
+    ).test(command)
+    const endsQa = new RegExp(`\\b(end|exit|close)\\s+(${qaWords})\\b`).test(
+      command,
+    )
+    if (entersQa && viewRef.current !== "qa") {
+      navigate("/qa")
+      setNotice("Voice command received: Q&A mode")
+    }
+    if (endsQa && viewRef.current === "qa") {
+      stopQaRecording()
+      navigate("/")
+      setNotice("Voice command received: lecture mode")
+    }
+  }
+  const stopGestureControl = () => {
+    if (gestureFrameRef.current) cancelAnimationFrame(gestureFrameRef.current)
+    gestureFrameRef.current = null
+    gestureStableSinceRef.current = null
+    gestureStreamRef.current?.getTracks().forEach((track) => track.stop())
+    gestureStreamRef.current = null
+    handDetectorRef.current?.dispose()
+    handDetectorRef.current = null
+    setGestureEnabled(false)
+    setGestureStatus("Camera off")
+  }
+  const describeGestureError = (error: unknown) => {
+    if (error instanceof DOMException) {
+      if (error.name === "NotAllowedError") {
+        return "Camera permission was denied. Allow camera access in your browser settings."
+      }
+      if (error.name === "NotFoundError") {
+        return "No camera was found. Connect or enable a camera, then try again."
+      }
+      if (error.name === "NotReadableError") {
+        return "Your camera is in use by another app. Close Zoom, FaceTime, or another camera app, then try again."
+      }
+    }
+    if (error instanceof Error) {
+      return `Gesture camera could not start: ${error.message}`
+    }
+    return "Gesture camera could not start. Please try again."
+  }
+  const startGestureControl = async () => {
+    if (gestureEnabled) {
+      stopGestureControl()
+      return
+    }
+    if (gestureStartingRef.current) return
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setNotice("Camera access is not available in this browser")
+      return
+    }
+    try {
+      gestureStartingRef.current = true
+      setGestureStatus("Requesting camera permission")
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      })
+      const video = gestureVideoRef.current
+      if (!video) throw new Error("Camera preview is unavailable")
+      gestureStreamRef.current = stream
+      video.srcObject = stream
+      await video.play()
+      setGestureEnabled(true)
+      setGestureStatus("Camera on - loading palm detection")
+
+      const [handPoseDetection, tensorflow, wasmBackend] = await Promise.all([
+        import("@tensorflow-models/hand-pose-detection"),
+        import("@tensorflow/tfjs-core"),
+        import("@tensorflow/tfjs-backend-wasm"),
+      ])
+      wasmBackend.setWasmPaths(
+        "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.22.0/dist/",
+      )
+      await tensorflow.setBackend("wasm")
+      await tensorflow.ready()
+      const detector = (await handPoseDetection.createDetector(
+        handPoseDetection.SupportedModels.MediaPipeHands,
+        { runtime: "tfjs", modelType: "full", maxHands: 2 },
+      )) as GestureDetector
+      if (gestureStreamRef.current !== stream) {
+        detector.dispose()
+        return
+      }
+      handDetectorRef.current = detector
+      setGestureStatus("Show both open palms")
+
+      let detecting = false
+      const detectHands = async () => {
+        if (!gestureStreamRef.current || detecting) return
+        detecting = true
+        try {
+          const hands = await detector.estimateHands(video, {
+            flipHorizontal: true,
+            staticImageMode: false,
+          })
+          if (gestureStreamRef.current !== stream) return
+          if (hands.length >= 2) {
+            const now = performance.now()
+            gestureStableSinceRef.current ??= now
+            setGestureStatus("Two hands detected - hold briefly")
+            if (now - gestureStableSinceRef.current > 800) {
+              stopGestureControl()
+              navigate("/qa")
+              setNotice("Two hands detected: Q&A mode")
+              return
+            }
+          } else {
+            gestureStableSinceRef.current = null
+            setGestureStatus("One hand found - show both hands")
+          }
+        } catch (error) {
+          gestureStableSinceRef.current = null
+          setGestureStatus(
+            error instanceof Error
+              ? `Hand detection paused: ${error.message}`
+              : "Hand detection paused. Restart the gesture camera.",
+          )
+          return
+        } finally {
+          detecting = false
+        }
+        gestureFrameRef.current = requestAnimationFrame(detectHands)
+      }
+      gestureFrameRef.current = requestAnimationFrame(detectHands)
+    } catch (error) {
+      stopGestureControl()
+      const message = describeGestureError(error)
+      setGestureStatus(message)
+      setNotice(message)
+    } finally {
+      gestureStartingRef.current = false
+    }
+  }
+  useEffect(() => {
+    if (view === "qa") {
+      setQaSeconds(300)
+      void startQaRecording()
+    } else {
+      stopQaRecording()
+    }
+  }, [view])
+  useEffect(() => {
+    return () => {
+      stopQaRecording()
+      if (qaAudioUrl) URL.revokeObjectURL(qaAudioUrl)
+    }
+  }, [])
   const toggleCaptions = () => {
     if (mic) {
       shouldListenRef.current = false
@@ -691,6 +910,10 @@ function AppShell() {
         }
         setCaptions((items) => [...items, caption])
         captionChannelRef.current?.postMessage({ type: "caption", caption })
+        handleVoiceModeCommand(confirmed)
+        if (viewRef.current === "qa") {
+          setQaTranscript((items) => [...items, caption])
+        }
       }
     }
     recognition.onerror = (event) => {
@@ -765,6 +988,15 @@ function AppShell() {
           "cursor-col-resize select-none",
       )}
     >
+      <video
+        ref={gestureVideoRef}
+        className={cn(
+          "pointer-events-none fixed bottom-16 right-4 z-50 w-32 rounded-lg border-2 border-emerald-400 bg-slate-950 shadow-lg",
+          gestureEnabled ? "block" : "hidden",
+        )}
+        muted
+        playsInline
+      />
       <header className="relative z-30 flex h-16 shrink-0 items-center border-b border-border bg-white">
         <div className="flex h-full shrink-0 items-center gap-2 px-5 lg:w-[var(--sidebar-width)]">
           <button
@@ -1097,34 +1329,6 @@ function AppShell() {
                       : "Start live captions"}
                 </span>
               </button>
-              <button
-                onClick={() => {
-                  const nextPace =
-                    pace === "optimal"
-                      ? "fast"
-                      : pace === "fast"
-                        ? "slow"
-                        : "optimal"
-                  setPace(nextPace)
-                  setTeleprompterStatus(
-                    `Auto-scroll · ${teleprompterWpmByPace[nextPace]} WPM`,
-                  )
-                }}
-                className={cn(
-                  "rounded-md px-2 py-1 font-mono text-[10px]",
-                  pace === "fast"
-                    ? "bg-amber-50 text-amber-800"
-                    : pace === "slow"
-                      ? "bg-sky-100 text-sky-700"
-                      : "bg-emerald-50 text-emerald-700",
-                )}
-              >
-                {pace === "fast"
-                  ? "185 WPM too fast"
-                  : pace === "slow"
-                    ? "95 WPM too slow"
-                    : "132 WPM optimal"}
-              </button>
               <div className="flex items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
@@ -1345,15 +1549,33 @@ function AppShell() {
                         <BookOpen size={15} className="text-slate-500" /> Smart
                         teleprompter
                       </span>
-                      <span
-                        aria-live="polite"
-                        className="flex items-center gap-1.5 rounded-full bg-sky-100 px-2 py-1 text-[10px] text-sky-700"
+                      <button
+                        onClick={() =>
+                          setTeleprompterAutoScroll((value) => !value)
+                        }
+                        aria-pressed={teleprompterAutoScroll}
+                        title={
+                          teleprompterAutoScroll
+                            ? "Pause auto-scroll"
+                            : "Start auto-scroll"
+                        }
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-medium",
+                          teleprompterAutoScroll
+                            ? "bg-sky-100 text-sky-700"
+                            : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                        )}
                       >
                         <span
-                          className={cn("h-1 w-1 rounded-full", "bg-sky-700")}
-                        />{" "}
-                        {teleprompterStatus}
-                      </span>
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            teleprompterAutoScroll
+                              ? "bg-sky-700"
+                              : "bg-slate-400",
+                          )}
+                        />
+                        Auto-scroll
+                      </button>
                     </div>
                     <div
                       tabIndex={0}
@@ -1424,8 +1646,15 @@ function AppShell() {
           {view === "qa" && (
             <section className="relative flex min-h-[300px] flex-1 flex-col lg:min-h-0 items-center justify-center rounded-xl border border-border bg-white shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
               <div className="absolute left-5 top-5 flex items-center gap-2 text-[11px] text-slate-500">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-red-600" />{" "}
-                Q&A audio bookmarked for post-talk review
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    qaRecording ? "animate-pulse bg-red-600" : "bg-slate-300",
+                  )}
+                />{" "}
+                {qaRecording
+                  ? "Q&A audio recording for post-talk review"
+                  : "Preparing Q&A audio recording"}
               </div>
               <span className="mb-4 rounded-full bg-sky-100 px-3 py-1 text-[11px] tracking-widest text-sky-700">
                 SPACE FOR CONVERSATION
@@ -1481,8 +1710,25 @@ function AppShell() {
                 </button>
               </div>
               <p className="mt-3 text-xs text-slate-500">
-                Use your voice to recall a slide, or select one below.
+                Say “End Q&A” to return to lecture mode, or use the controls
+                below.
               </p>
+              <div className="mt-5 w-full max-w-xl rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 text-left">
+                <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                  <span>Q&A transcript bookmarks</span>
+                  <span>{qaTranscript.length} captured</span>
+                </div>
+                <p className="mt-2 truncate text-xs text-slate-600">
+                  {qaTranscript.length
+                    ? qaTranscript[qaTranscript.length - 1].text
+                    : "Responses captured while live captions are active will appear here."}
+                </p>
+                {qaAudioUrl && (
+                  <audio controls className="mt-3 h-8 w-full" src={qaAudioUrl}>
+                    Q&A audio playback
+                  </audio>
+                )}
+              </div>
             </section>
           )}
           {view === "audience" && (
@@ -2053,6 +2299,35 @@ function AppShell() {
                 <div className="flex items-center gap-2">
                   {view !== "qa" && (
                     <button
+                      onClick={() => void startGestureControl()}
+                      aria-pressed={gestureEnabled}
+                      title={gestureStatus}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-[11px] font-medium",
+                        gestureEnabled
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-border text-slate-600 hover:bg-slate-50",
+                      )}
+                    >
+                      <Camera size={13} />
+                      {gestureEnabled
+                        ? "Gesture camera on"
+                        : "Start gesture camera"}
+                    </button>
+                  )}
+                  {view !== "qa" && (
+                    <span
+                      aria-live="polite"
+                      className={cn(
+                        "hidden text-[10px] sm:inline",
+                        gestureEnabled ? "text-emerald-700" : "text-slate-400",
+                      )}
+                    >
+                      {gestureStatus}
+                    </span>
+                  )}
+                  {view !== "qa" && (
+                    <button
                       onClick={() => setLaser(!laser)}
                       className={cn(
                         "flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px]",
@@ -2071,13 +2346,22 @@ function AppShell() {
                       {paused ? "Resume session" : "Pause session"}
                     </button>
                   )}
-                  <NavLink
-                    to={view === "qa" ? "/" : "/qa"}
+                  <button
+                    onClick={() => {
+                      if (view === "qa") {
+                        stopQaRecording()
+                        navigate("/")
+                        setNotice("Lecture mode resumed")
+                      } else {
+                        navigate("/qa")
+                        setNotice("Q&A mode started")
+                      }
+                    }}
                     className="flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-xs font-semibold text-white"
                   >
                     <Mic size={13} />
                     {view === "qa" ? "End Q&A" : "Enter Q&A mode"}
-                  </NavLink>
+                  </button>
                 </div>
               </footer>
             )
