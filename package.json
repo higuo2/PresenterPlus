@@ -10,6 +10,10 @@
     "format": "oxfmt"
   },
   "dependencies": {
+    "@tensorflow-models/hand-pose-detection": "^2.0.1",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@tensorflow/tfjs-converter": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
     "lucide-react": "^1.52.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
