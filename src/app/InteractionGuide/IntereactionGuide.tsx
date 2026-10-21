@@ -99,7 +99,7 @@ const cues = [
     icon: HeartPulse,
     title: "Green glow & heartbeat",
     text: "A subtle peripheral glow and heartbeat earcon indicate an optimal speaking rate.",
-    tag: "On track · 120–140 WPM",
+    tag: "On track 120–140 WPM",
     tone: "bg-emerald-50 text-emerald-700",
     dot: "bg-emerald-700",
   },
@@ -107,7 +107,7 @@ const cues = [
     icon: Zap,
     title: "Rose ambient flash",
     text: "A brief visual pulse brings your attention to a sudden increase in speaking pace.",
-    tag: "Pace spike · ΔWPM ≥ 30",
+    tag: "Pace spike ΔWPM ≥ 30",
     tone: "bg-rose-50 text-rose-700",
     dot: "bg-rose-700",
   },
@@ -380,7 +380,7 @@ export default function InteractionGuide({ onClose }: { onClose: () => void }) {
           microphone stay in your control.
         </span>
         <span>
-          Preview capabilities · Gesture, voice and ambient feedback are
+          Preview capabilities Gesture, voice and ambient feedback are
           simulated.
         </span>
       </div>
