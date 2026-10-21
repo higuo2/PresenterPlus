@@ -58,6 +58,40 @@ Use Chrome or another browser that supports the Web Speech Recognition API. Keep
 - The notes export is a structured text file, not yet a PDF document.
 - Current live slide navigation is not synchronised between separately opened Presenter and Audience tabs. Captions are synchronised; the next presentation-control task should synchronise the current slide as well.
 
-### Suggested next implementation
+## Completed: Smart Teleprompter pace tracking
 
-Implement Task 1, Smart Teleprompter: use confirmed transcript text to locate the matching script sentence and automatically advance the progressive-disclosure prompt.
+Status: tested successfully in the local preview on 2026-10-21.
+
+### What works now
+
+1. The Smart Teleprompter advances automatically from the estimated presentation pace of **132 WPM**; it does not wait for speech recognition.
+2. Each script line remains visible for a duration calculated from its complete word count plus natural comma, semicolon, colon, dash, and sentence-ending pauses. This prevents short words from being ignored and gives longer or more punctuated lines more reading time.
+3. Auto-scroll is constrained to the current slide's script range. It stops at the final line of that slide and waits for the presenter to move to the next slide.
+4. The status badge shows the active auto-scroll pace. The existing pacing control changes the next-line timing between 95 WPM (slow), 132 WPM (optimal), and 185 WPM (fast).
+5. The visible previous, current, and upcoming script lines are all clickable. Clicking any line immediately sets **YOU'RE HERE** to that line and resumes pace-based auto-scroll from there.
+6. Existing **Swipe up to skip** and **Swipe down to revisit** controls use the same repositioning logic.
+7. Live captions remain enabled for the audience and session notes, but do not control the teleprompter position.
+
+### Smart Teleprompter test procedure
+
+1. Open Presenter workspace and refresh the page so the latest implementation is loaded.
+2. Confirm the Smart Teleprompter badge says **Auto-scroll · 132 WPM**.
+3. Observe Slide 01: after the estimated reading duration of the current line, **YOU'RE HERE** should move to the next sentence without enabling the microphone.
+4. Confirm that auto-scroll stops at the last script line for the current slide.
+5. Click the previous visible script line. Confirm that **YOU'RE HERE** immediately returns to it, then continues automatically.
+6. Click an upcoming visible line. Confirm that the prompt jumps there immediately and continues at the same estimated pace.
+7. Use **Swipe up to skip** and **Swipe down to revisit**. Confirm they also reposition the prompt and continue auto-scroll.
+8. Move to Slide 02. Confirm that the prompt resets to the first script line for Slide 02 and starts its new timing cycle.
+9. Click the presentation pace chip to cycle through optimal, fast, and slow. Confirm that the next script line advances faster at 185 WPM and slower at 95 WPM.
+
+### Verification completed
+
+- `pnpm build` passes.
+- `oxfmt --check src/app/App.tsx` passes.
+- Pace-based auto-scroll advances without microphone input.
+- Clicking a visible script line immediately repositions **YOU'RE HERE** and resumes auto-scroll.
+- The project user completed the timed end-to-end test successfully.
+
+### Current next priority
+
+Task 4, seamless Q&A mode transition: voice or macro-gesture entry, a focused Q&A screen, and captured Q&A segments for the post-talk report.

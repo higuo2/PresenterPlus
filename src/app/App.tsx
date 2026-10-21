@@ -139,6 +139,62 @@ const script = [
   "I'll stop there and take questions.",
 ]
 const cue = [0, 2, 4, 6, 8, 10, 12, 14, 18, 20]
+const estimatedTeleprompterWpm = 132
+const teleprompterWpmByPace = { optimal: 132, fast: 185, slow: 95 }
+
+const estimateTeleprompterDelay = (
+  sentence: string,
+  wordsPerMinute: number,
+) => {
+  const wordCount = sentence.trim().split(/\s+/).filter(Boolean).length
+  const pauseCount = (sentence.match(/[,;:—-]/g) ?? []).length
+  const sentenceEndingPause = /[.!?]$/.test(sentence.trim()) ? 300 : 0
+  const readingTime = (wordCount / wordsPerMinute) * 60_000
+  return Math.round(
+    Math.max(
+      1800,
+      Math.min(12_000, readingTime + pauseCount * 350 + sentenceEndingPause),
+    ),
+  )
+}
+
+const normaliseScriptText = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length > 2)
+
+const findScriptMatch = (
+  transcript: string,
+  slide: number,
+  currentParagraph: number,
+) => {
+  const transcriptTokens = new Set(normaliseScriptText(transcript))
+  if (transcriptTokens.size < 3) return null
+
+  const start = Math.max(cue[slide - 1] ?? 0, currentParagraph)
+  const end = cue[slide] ?? script.length
+  let bestMatch: { index: number score: number } | null = null
+
+  for (let index = start; index < end; index += 1) {
+    const sentenceTokens = new Set(normaliseScriptText(script[index]))
+    const sharedTokens = [...sentenceTokens].filter((token) =>
+      transcriptTokens.has(token),
+    ).length
+    const score =
+      sharedTokens / Math.min(sentenceTokens.size, transcriptTokens.size)
+    if (
+      sharedTokens >= 3 &&
+      score >= 0.45 &&
+      (!bestMatch || score > bestMatch.score)
+    ) {
+      bestMatch = { index, score }
+    }
+  }
+
+  return bestMatch?.index ?? null
+}
 
 type CaptionEntry = {
   slide: number
@@ -432,6 +488,7 @@ function AppShell() {
   const [analyticsRail, setAnalyticsRail] = useState(36)
   const [resizingAnalytics, setResizingAnalytics] = useState(false)
   const slideRef = useRef(slide)
+  const paragraphRef = useRef(paragraph)
   const maxSidebarWidth = Math.max(224, Math.min(400, viewportWidth - 720))
   const sidebarWidth = Math.min(preferredSidebarWidth, maxSidebarWidth)
   const maxTeleprompterWidth = Math.max(
@@ -459,8 +516,11 @@ function AppShell() {
   const resizeAnalyticsRail = (percent: number) =>
     setAnalyticsRail(Math.round(Math.max(26, Math.min(58, percent))))
   useEffect(() => {
-    setParagraph(cue[slide - 1] ?? 0)
+    const nextParagraph = cue[slide - 1] ?? 0
+    setParagraph(nextParagraph)
     slideRef.current = slide
+    paragraphRef.current = nextParagraph
+    setTeleprompterStatus(`Auto-scroll · ${estimatedTeleprompterWpm} WPM`)
   }, [slide])
   useEffect(() => {
     const updateViewport = () => setViewportWidth(window.innerWidth)
@@ -481,6 +541,7 @@ function AppShell() {
   const [playing, setPlaying] = useState(false)
   const [zoom, setZoom] = useState(false)
   const [pace, setPace] = useState<"optimal" | "fast" | "slow">("optimal")
+  const teleprompterWpm = teleprompterWpmByPace[pace]
   const [captions, setCaptions] = useState<CaptionEntry[]>(() => {
     try {
       const savedCaptions = localStorage.getItem("presenterplus-captions")
@@ -492,6 +553,7 @@ function AppShell() {
   const [interimCaption, setInterimCaption] = useState("")
   const [captionStatus, setCaptionStatus] =
     useState<"idle" | "listening" | "unsupported">("idle")
+  const [teleprompterStatus, setTeleprompterStatus] = useState("Voice ready")
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const shouldListenRef = useRef(false)
   const captionChannelRef = useRef<BroadcastChannel | null>(null)
@@ -537,6 +599,20 @@ function AppShell() {
     } catch {}
   }, [captions])
   useEffect(() => {
+    if (view !== "presenter" || paused) return
+    const end = cue[slide] ?? script.length
+    if (paragraph >= end - 1) return
+
+    const delay = estimateTeleprompterDelay(script[paragraph], teleprompterWpm)
+    const timer = window.setTimeout(() => {
+      const nextParagraph = Math.min(end - 1, paragraphRef.current + 1)
+      paragraphRef.current = nextParagraph
+      setParagraph(nextParagraph)
+      setTeleprompterStatus(`Auto-scroll · ${teleprompterWpm} WPM`)
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [paragraph, paused, slide, teleprompterWpm, view])
+  useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return
       if (event.target instanceof HTMLInputElement) return
@@ -549,6 +625,14 @@ function AppShell() {
   }, [])
   const time = (value: number) =>
     `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`
+  const setTeleprompterPosition = (nextParagraph: number) => {
+    const start = cue[slideRef.current - 1] ?? 0
+    const end = cue[slideRef.current] ?? script.length
+    const boundedParagraph = Math.max(start, Math.min(end - 1, nextParagraph))
+    paragraphRef.current = boundedParagraph
+    setParagraph(boundedParagraph)
+    setTeleprompterStatus(`Auto-scroll · ${teleprompterWpm} WPM`)
+  }
   const toggleCaptions = () => {
     if (mic) {
       shouldListenRef.current = false
@@ -1014,15 +1098,18 @@ function AppShell() {
                 </span>
               </button>
               <button
-                onClick={() =>
-                  setPace(
+                onClick={() => {
+                  const nextPace =
                     pace === "optimal"
                       ? "fast"
                       : pace === "fast"
                         ? "slow"
-                        : "optimal",
+                        : "optimal"
+                  setPace(nextPace)
+                  setTeleprompterStatus(
+                    `Auto-scroll · ${teleprompterWpmByPace[nextPace]} WPM`,
                   )
-                }
+                }}
                 className={cn(
                   "rounded-md px-2 py-1 font-mono text-[10px]",
                   pace === "fast"
@@ -1258,9 +1345,14 @@ function AppShell() {
                         <BookOpen size={15} className="text-slate-500" /> Smart
                         teleprompter
                       </span>
-                      <span className="flex items-center gap-1.5 rounded-full bg-sky-100 px-2 py-1 text-[10px] text-sky-700">
-                        <span className="h-1 w-1 rounded-full bg-sky-700" />{" "}
-                        Voice synced
+                      <span
+                        aria-live="polite"
+                        className="flex items-center gap-1.5 rounded-full bg-sky-100 px-2 py-1 text-[10px] text-sky-700"
+                      >
+                        <span
+                          className={cn("h-1 w-1 rounded-full", "bg-sky-700")}
+                        />{" "}
+                        {teleprompterStatus}
                       </span>
                     </div>
                     <div
@@ -1270,45 +1362,55 @@ function AppShell() {
                       className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                     >
                       {paragraph > 0 && (
-                        <p className="text-sm leading-relaxed text-slate-500">
+                        <button
+                          onClick={() => setTeleprompterPosition(paragraph - 1)}
+                          className="block w-full text-left text-sm leading-relaxed text-slate-500 hover:text-slate-900"
+                          title="Click to return to this line"
+                        >
                           {script[paragraph - 1]}
-                        </p>
+                        </button>
                       )}
-                      <div className="relative -mx-1 rounded-lg border-l-[3px] border-sky-700 bg-sky-100 px-3 py-2">
+                      <button
+                        onClick={() => setTeleprompterPosition(paragraph)}
+                        className="relative -mx-1 block w-[calc(100%+0.5rem)] rounded-lg border-l-[3px] border-sky-700 bg-sky-100 px-3 py-2 text-left"
+                        title="Keep the teleprompter on this line"
+                      >
                         <span className="mb-2 block text-[10px] font-semibold tracking-[0.16em] text-sky-700">
                           YOU'RE HERE
                         </span>
                         <p className="text-[22px] font-semibold leading-[1.4]">
                           {script[paragraph]}
                         </p>
-                      </div>
+                      </button>
                       {script[paragraph + 1] && (
-                        <p className="text-sm leading-relaxed text-slate-600">
+                        <button
+                          onClick={() => setTeleprompterPosition(paragraph + 1)}
+                          className="block w-full text-left text-sm leading-relaxed text-slate-600 hover:text-slate-900"
+                          title="Click to jump to this line"
+                        >
                           {script[paragraph + 1]}
-                        </p>
+                        </button>
                       )}
                       {script[paragraph + 2] && (
-                        <p className="text-sm leading-relaxed text-slate-600">
+                        <button
+                          onClick={() => setTeleprompterPosition(paragraph + 2)}
+                          className="block w-full text-left text-sm leading-relaxed text-slate-600 hover:text-slate-900"
+                          title="Click to jump to this line"
+                        >
                           {script[paragraph + 2]}
-                        </p>
+                        </button>
                       )}
                     </div>
                     <div className="flex items-center justify-between border-t border-border px-4 py-3 text-[10px] text-slate-500">
                       <button
-                        onClick={() =>
-                          setParagraph((value) =>
-                            Math.min(script.length - 1, value + 1),
-                          )
-                        }
+                        onClick={() => setTeleprompterPosition(paragraph + 1)}
                         className="flex items-center gap-1.5 hover:text-slate-900"
                       >
                         <Hand size={12} /> Swipe up to skip
                       </button>
                       <span className="h-3 border-l border-border" />
                       <button
-                        onClick={() =>
-                          setParagraph((value) => Math.max(0, value - 1))
-                        }
+                        onClick={() => setTeleprompterPosition(paragraph - 1)}
                         className="flex items-center gap-1.5 hover:text-slate-900"
                       >
                         <ArrowDown size={11} /> Swipe down to revisit
