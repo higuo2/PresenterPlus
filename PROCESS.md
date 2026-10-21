@@ -2,7 +2,7 @@
 
 ## Completed: Live captions and structured session notes
 
-Status: tested successfully in the local preview on 2026-10-21.
+Status: tested successfully in the local preview on 2026-10-21, including the manual Auto-scroll start control.
 
 This is the implementation of Task 5 from the project description: live captions and automatically structured presentation notes.
 
@@ -64,10 +64,10 @@ Status: tested successfully in the local preview on 2026-10-21.
 
 ### What works now
 
-1. The Smart Teleprompter advances automatically from the estimated presentation pace of **132 WPM**; it does not wait for speech recognition.
+1. The Smart Teleprompter stays still by default. Clicking its **Auto-scroll** control starts pace-based advancement; clicking it again pauses advancement. It does not wait for speech recognition.
 2. Each script line remains visible for a duration calculated from its complete word count plus natural comma, semicolon, colon, dash, and sentence-ending pauses. This prevents short words from being ignored and gives longer or more punctuated lines more reading time.
 3. Auto-scroll is constrained to the current slide's script range. It stops at the final line of that slide and waits for the presenter to move to the next slide.
-4. The status badge shows the active auto-scroll pace. The existing pacing control changes the next-line timing between 95 WPM (slow), 132 WPM (optimal), and 185 WPM (fast).
+4. The compact **Auto-scroll** button gives a clear active/inactive state without showing a WPM value. Internally, timing still uses the presentation pace estimate.
 5. The visible previous, current, and upcoming script lines are all clickable. Clicking any line immediately sets **YOU'RE HERE** to that line and resumes pace-based auto-scroll from there.
 6. Existing **Swipe up to skip** and **Swipe down to revisit** controls use the same repositioning logic.
 7. Live captions remain enabled for the audience and session notes, but do not control the teleprompter position.
@@ -75,14 +75,14 @@ Status: tested successfully in the local preview on 2026-10-21.
 ### Smart Teleprompter test procedure
 
 1. Open Presenter workspace and refresh the page so the latest implementation is loaded.
-2. Confirm the Smart Teleprompter badge says **Auto-scroll · 132 WPM**.
-3. Observe Slide 01: after the estimated reading duration of the current line, **YOU'RE HERE** should move to the next sentence without enabling the microphone.
-4. Confirm that auto-scroll stops at the last script line for the current slide.
+2. Confirm the Smart Teleprompter control says **Auto-scroll** and has a grey dot. Wait for several seconds and confirm that **YOU'RE HERE** does not move.
+3. Click **Auto-scroll**. Confirm that its dot turns blue and, after the estimated reading duration of the current line, **YOU'RE HERE** moves to the next sentence without enabling the microphone.
+4. Click **Auto-scroll** again and confirm that the prompt remains on its current line. Click once more to resume, then confirm that auto-scroll stops at the last script line for the current slide.
 5. Click the previous visible script line. Confirm that **YOU'RE HERE** immediately returns to it, then continues automatically.
 6. Click an upcoming visible line. Confirm that the prompt jumps there immediately and continues at the same estimated pace.
 7. Use **Swipe up to skip** and **Swipe down to revisit**. Confirm they also reposition the prompt and continue auto-scroll.
 8. Move to Slide 02. Confirm that the prompt resets to the first script line for Slide 02 and starts its new timing cycle.
-9. Click the presentation pace chip to cycle through optimal, fast, and slow. Confirm that the next script line advances faster at 185 WPM and slower at 95 WPM.
+9. Confirm that the interface does not display the internal WPM value; it shows only the **Auto-scroll** control.
 
 ### Verification completed
 
@@ -91,6 +91,7 @@ Status: tested successfully in the local preview on 2026-10-21.
 - Pace-based auto-scroll advances without microphone input.
 - Clicking a visible script line immediately repositions **YOU'RE HERE** and resumes auto-scroll.
 - The project user completed the timed end-to-end test successfully.
+- The project user confirmed that Auto-scroll stays stopped on entry and starts only after clicking the **Auto-scroll** control.
 
 ## Completed: Q&A mode transition and review capture
 

@@ -148,8 +148,7 @@ const script = [
   "I'll stop there and take questions.",
 ]
 const cue = [0, 2, 4, 6, 8, 10, 12, 14, 18, 20]
-const estimatedTeleprompterWpm = 132
-const teleprompterWpmByPace = { optimal: 132, fast: 185, slow: 95 }
+const teleprompterWpm = 132
 
 const estimateTeleprompterDelay = (
   sentence: string,
@@ -531,7 +530,6 @@ function AppShell() {
     setParagraph(nextParagraph)
     slideRef.current = slide
     paragraphRef.current = nextParagraph
-    setTeleprompterStatus(`Auto-scroll · ${estimatedTeleprompterWpm} WPM`)
   }, [slide])
   useEffect(() => {
     const updateViewport = () => setViewportWidth(window.innerWidth)
@@ -556,8 +554,8 @@ function AppShell() {
   const [gestureStatus, setGestureStatus] = useState("Camera off")
   const [playing, setPlaying] = useState(false)
   const [zoom, setZoom] = useState(false)
-  const [pace, setPace] = useState<"optimal" | "fast" | "slow">("optimal")
-  const teleprompterWpm = teleprompterWpmByPace[pace]
+  const pace = "optimal"
+  const [teleprompterAutoScroll, setTeleprompterAutoScroll] = useState(false)
   const [captions, setCaptions] = useState<CaptionEntry[]>(() => {
     try {
       const savedCaptions = localStorage.getItem("presenterplus-captions")
@@ -569,7 +567,6 @@ function AppShell() {
   const [interimCaption, setInterimCaption] = useState("")
   const [captionStatus, setCaptionStatus] =
     useState<"idle" | "listening" | "unsupported">("idle")
-  const [teleprompterStatus, setTeleprompterStatus] = useState("Voice ready")
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const shouldListenRef = useRef(false)
   const captionChannelRef = useRef<BroadcastChannel | null>(null)
@@ -627,7 +624,7 @@ function AppShell() {
     } catch {}
   }, [captions])
   useEffect(() => {
-    if (view !== "presenter" || paused) return
+    if (view !== "presenter" || paused || !teleprompterAutoScroll) return
     const end = cue[slide] ?? script.length
     if (paragraph >= end - 1) return
 
@@ -636,10 +633,9 @@ function AppShell() {
       const nextParagraph = Math.min(end - 1, paragraphRef.current + 1)
       paragraphRef.current = nextParagraph
       setParagraph(nextParagraph)
-      setTeleprompterStatus(`Auto-scroll · ${teleprompterWpm} WPM`)
     }, delay)
     return () => window.clearTimeout(timer)
-  }, [paragraph, paused, slide, teleprompterWpm, view])
+  }, [paragraph, paused, slide, teleprompterAutoScroll, view])
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return
@@ -659,7 +655,6 @@ function AppShell() {
     const boundedParagraph = Math.max(start, Math.min(end - 1, nextParagraph))
     paragraphRef.current = boundedParagraph
     setParagraph(boundedParagraph)
-    setTeleprompterStatus(`Auto-scroll · ${teleprompterWpm} WPM`)
   }
   const stopQaRecording = () => {
     const recorder = qaRecorderRef.current
@@ -1334,34 +1329,6 @@ function AppShell() {
                       : "Start live captions"}
                 </span>
               </button>
-              <button
-                onClick={() => {
-                  const nextPace =
-                    pace === "optimal"
-                      ? "fast"
-                      : pace === "fast"
-                        ? "slow"
-                        : "optimal"
-                  setPace(nextPace)
-                  setTeleprompterStatus(
-                    `Auto-scroll · ${teleprompterWpmByPace[nextPace]} WPM`,
-                  )
-                }}
-                className={cn(
-                  "rounded-md px-2 py-1 font-mono text-[10px]",
-                  pace === "fast"
-                    ? "bg-amber-50 text-amber-800"
-                    : pace === "slow"
-                      ? "bg-sky-100 text-sky-700"
-                      : "bg-emerald-50 text-emerald-700",
-                )}
-              >
-                {pace === "fast"
-                  ? "185 WPM too fast"
-                  : pace === "slow"
-                    ? "95 WPM too slow"
-                    : "132 WPM optimal"}
-              </button>
               <div className="flex items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
@@ -1582,15 +1549,33 @@ function AppShell() {
                         <BookOpen size={15} className="text-slate-500" /> Smart
                         teleprompter
                       </span>
-                      <span
-                        aria-live="polite"
-                        className="flex items-center gap-1.5 rounded-full bg-sky-100 px-2 py-1 text-[10px] text-sky-700"
+                      <button
+                        onClick={() =>
+                          setTeleprompterAutoScroll((value) => !value)
+                        }
+                        aria-pressed={teleprompterAutoScroll}
+                        title={
+                          teleprompterAutoScroll
+                            ? "Pause auto-scroll"
+                            : "Start auto-scroll"
+                        }
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-medium",
+                          teleprompterAutoScroll
+                            ? "bg-sky-100 text-sky-700"
+                            : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                        )}
                       >
                         <span
-                          className={cn("h-1 w-1 rounded-full", "bg-sky-700")}
-                        />{" "}
-                        {teleprompterStatus}
-                      </span>
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            teleprompterAutoScroll
+                              ? "bg-sky-700"
+                              : "bg-slate-400",
+                          )}
+                        />
+                        Auto-scroll
+                      </button>
                     </div>
                     <div
                       tabIndex={0}
