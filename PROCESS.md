@@ -153,7 +153,7 @@ This replaces the ambient-sensing half of Task 2. Attention dashboard and Studen
 
 ### How to run it
 
-From `classroom-attention-monitor`, with its existing Python 3.12 virtual environment:
+The camera service is a separate repository, [higuo2/classroom-attention-monitor](https://github.com/higuo2/classroom-attention-monitor), cloned into this project as `classroom-attention-monitor`. It is not committed here. The detection code comes from [dushyantbaroliya/classroom-attention-monitor](https://github.com/dushyantbaroliya/classroom-attention-monitor). On a new machine, clone that repository, create a Python 3.12 virtual environment, install `requirements.txt`, run `scripts/download_models.py` and `alembic upgrade head`, then start it:
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000

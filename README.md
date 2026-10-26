@@ -2,7 +2,7 @@
 
 PresenterPlus 是一个多模态演讲界面。讲者用手势、语音和现场提示来控制幻灯片，观众看实时字幕，讲完之后回看自己的表现。
 
-当前仓库是这套界面。语速提示跟着已确认的英文字幕变。会后报告里的语速曲线仍是演示数据。现场专注度接到了本目录里的 Python 摄像头服务。
+当前仓库是这套界面。语速提示跟着已确认的英文字幕变。会后报告里的语速曲线仍是演示数据。现场专注度接到单独克隆的 Python 摄像头服务。
 
 ## 打开网页
 
@@ -42,7 +42,22 @@ pnpm dev
 
 ## 专注度
 
-后端在 `classroom-attention-monitor`。那个目录里已经有 Python 3.12 虚拟环境。先启动它，监听 `8000`：
+摄像头服务在另一个仓库：[classroom-attention-monitor](https://github.com/higuo2/classroom-attention-monitor)。本仓库不包含它。在本目录里克隆，文件夹名保持不变：
+
+```powershell
+git clone https://github.com/higuo2/classroom-attention-monitor.git
+```
+
+需要 Python 3.12。第一次在那个目录里：
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe scripts/download_models.py
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+之后每次启动，监听 `8000`：
 
 ```powershell
 cd classroom-attention-monitor
