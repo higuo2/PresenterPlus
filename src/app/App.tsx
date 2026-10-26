@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import ClassroomAttention from "./Attention"
 import InteractionGuide from "./InteractionGuide/IntereactionGuide"
 import type { CSSProperties } from "react"
 import {
@@ -27,6 +28,8 @@ import {
   Download,
   Expand,
   FileText,
+  Gauge,
+  Users,
   Hand,
   Layers,
   LayoutDashboard,
@@ -41,10 +44,8 @@ import {
   Settings2,
   Share2,
   ShieldCheck,
-  Sliders,
   Sparkles,
   Square,
-  Volume2,
   X,
 } from "lucide-react"
 
@@ -230,26 +231,6 @@ type CaptionMessage = { type: "caption" caption: CaptionEntry } | {
   type: "interim"
   text: string
 } | { type: "status" active: boolean }
-function playHeartbeat() {
-  const ctx = new AudioContext()
-  const thump = (when: number, freq: number) => {
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.type = "sine"
-    osc.frequency.value = freq
-    gain.gain.setValueAtTime(0.001, when)
-    gain.gain.exponentialRampToValueAtTime(0.5, when + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.001, when + 0.14)
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.start(when)
-    osc.stop(when + 0.15)
-  }
-  const now = ctx.currentTime
-  thump(now, 72)
-  thump(now + 0.2, 54)
-  setTimeout(() => ctx.close(), 800)
-}
 function Wave({
   color = "bg-sky-700",
   small = false,
@@ -290,26 +271,38 @@ function Slide({ number = 1 }: { number?: number compact?: boolean }) {
     />
   )
 }
-const paceSamples = [
-  128, 130, 133, 132, 136, 140, 138, 144, 136, 148, 158, 170, 185, 152, 140,
-  134,
-]
-const paceY = (wpm: number) => 64 - ((wpm - 100) / 100) * 56
-const pacePath = paceSamples
-  .map((wpm, index) => {
-    const x = (index / (paceSamples.length - 1)) * 640
-    return `${index ? "L" : "M"}${x.toFixed(1)},${paceY(wpm).toFixed(1)}`
-  })
-  .join(" ")
-function AcousticTimeline() {
+type SpokenWord = { at: number; slide: number }
+type PacePoint = { t: number; wpm: number; slide: number; peak: boolean }
+type PaceBand = "idle" | "optimal" | "fast" | "slow"
+
+const paceY = (wpm: number) => {
+  const clamped = Math.max(100, Math.min(200, wpm))
+  return 64 - ((clamped - 100) / 100) * 56
+}
+const paceX = (index: number, count: number) =>
+  count <= 1 ? 320 : (index / (count - 1)) * 640
+const paceClock = (seconds: number) => {
+  const whole = Math.max(0, Math.round(seconds))
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`
+}
+
+function PaceTimeline({ points }: { points: PacePoint[] }) {
+  const line = points
+    .map(
+      (point, index) =>
+        `${index ? "L" : "M"}${paceX(index, points.length).toFixed(1)},${paceY(point.wpm).toFixed(1)}`,
+    )
+    .join(" ")
+  const last = points[points.length - 1]
+  const mid = points[Math.floor(points.length / 2)]
   return (
     <div className="shrink-0 rounded-xl border border-border bg-white px-3 py-2">
       <div className="mb-1.5 flex items-center justify-between">
         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
-          Session acoustic & pacing timeline
+          Speaking rate
         </span>
         <span className="font-mono text-[10px] text-slate-400">
-          WPM 100–200
+          Target 120–140 WPM
         </span>
       </div>
       <div className="relative h-16">
@@ -332,133 +325,112 @@ function AcousticTimeline() {
             height={paceY(120) - paceY(140)}
             fill="#ecfdf5"
           />
-          <path
-            d={pacePath}
-            fill="none"
-            stroke="#0F172A"
-            strokeWidth="1.5"
-            vectorEffect="non-scaling-stroke"
-          />
-          <circle cx="512" cy={paceY(185)} r="3.5" fill="#BE123C" />
+          {line && (
+            <path
+              d={line}
+              fill="none"
+              stroke="#0F172A"
+              strokeWidth="1.5"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+          {points.map((point, index) =>
+            point.peak ? (
+              <circle
+                key={`${point.t}-${index}`}
+                cx={paceX(index, points.length)}
+                cy={paceY(point.wpm)}
+                r="3.5"
+                fill="#BE123C"
+                className="animate-pulse"
+              >
+                <title>{`${point.wpm} WPM · Slide ${point.slide}`}</title>
+              </circle>
+            ) : null,
+          )}
         </svg>
-        {[
-          ["34%", "Silence (3s)"],
-          ["58%", "Laughter"],
-          ["78%", "Applause (+12dB)"],
-        ].map(([left, label]) => (
-          <span
-            key={label}
-            style={{ left }}
-            className="absolute top-0 -translate-x-1/2 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] text-slate-600"
-          >
-            {label}
-          </span>
-        ))}
       </div>
       <div className="mt-1 flex justify-between font-mono text-[10px] text-slate-400">
-        <span>00:00</span>
-        <span>05:00</span>
-        <span>10:00</span>
-        <span>15:00</span>
+        <span>{paceClock(points[0]?.t ?? 0)}</span>
+        <span>{paceClock(mid?.t ?? 0)}</span>
+        <span>{paceClock(last?.t ?? 0)}</span>
       </div>
     </div>
   )
 }
-function AudiencePulse({ slide }: { slide: number }) {
+function AudiencePulse({
+  wpm,
+  band,
+  peak,
+}: {
+  wpm: number | null
+  band: PaceBand
+  peak: PacePoint | null
+}) {
+  const advice =
+    peak != null
+      ? `Pacing spiked to ${peak.wpm} WPM on Slide ${peak.slide}. Pause before the next figure.`
+      : band === "fast"
+        ? "Speaking rate too fast. Take a breath and pause at commas."
+        : band === "slow"
+          ? "Pace is a little low. Keep your energy up!"
+          : band === "optimal"
+            ? "You're in a great rhythm."
+            : "Start live captions to measure speaking rate."
   return (
     <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
       <div className="flex shrink-0 items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-800">
-          AUDIENCE PULSE & CO-PILOT
-        </h2>
-        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+        <h2 className="text-sm font-bold text-slate-800">PACING COACH</h2>
+        <span
+          className={cn(
+            "h-2 w-2 rounded-full",
+            band === "fast"
+              ? "bg-amber-500"
+              : band === "slow"
+                ? "bg-sky-700"
+                : band === "optimal"
+                  ? "animate-pulse bg-emerald-500"
+                  : "bg-slate-300",
+          )}
+        />
       </div>
       <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <section>
           <div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
-            <Volume2 size={12} /> Room energy
+            <Activity size={12} /> Speaking rate
           </div>
           <div className="flex items-end gap-2">
             <span className="text-[32px] font-bold leading-none text-slate-900">
-              88%
+              {wpm ?? "—"}
             </span>
-            <span className="mb-1 text-xs text-emerald-700">+4% vs avg</span>
-          </div>
-          <ul className="mt-2 space-y-2 text-xs text-slate-600">
-            {[
-              ["12:52:10", "Applause detected", "+14dB"],
-              ["12:50:45", "Laughter response", "Positive"],
-              ["12:48:20", "Room quiet", "High focus"],
-            ].map(([stamp, event, level]) => (
-              <li key={stamp} className="flex items-baseline gap-2 py-1.5">
-                <span className="font-mono text-[10px] text-slate-400">
-                  {stamp}
-                </span>
-                <span>{event}</span>
-                <span className="ml-auto font-mono text-[10px] text-slate-500">
-                  {level}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
-            <Mic size={12} /> Vocal & delivery
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              ["185", "WPM (Fast)", "text-rose-700"],
-              ["4", "Um / Ah", "text-slate-800"],
-              ["82%", "Eye Contact", "text-slate-800"],
-            ].map(([value, label, color]) => (
-              <div
-                key={label}
-                className="rounded-xl border border-slate-100 bg-slate-50 p-3"
-              >
-                <div
-                  className={cn(
-                    "text-[20px] font-semibold leading-none",
-                    color,
-                  )}
-                >
-                  {value}
-                </div>
-                <div className="mt-1.5 text-[10px] text-slate-500">{label}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3">
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] text-slate-500">
-              <Sliders size={11} /> Voice pitch stability
-            </div>
-            <div className="flex h-6 items-end gap-[3px]">
-              {[8, 14, 20, 12, 22, 18, 10, 16, 24, 14, 9, 18, 12, 20, 8].map(
-                (height, index) => (
-                  <span
-                    key={index}
-                    className="flex-1 rounded-sm bg-sky-700/80"
-                    style={{ height }}
-                  />
-                ),
+            <span
+              className={cn(
+                "mb-1 text-xs font-medium",
+                band === "fast"
+                  ? "text-rose-700"
+                  : band === "slow"
+                    ? "text-sky-700"
+                    : "text-emerald-700",
               )}
-            </div>
+            >
+              {band === "fast"
+                ? "WPM · Fast"
+                : band === "slow"
+                  ? "WPM · Slow"
+                  : band === "optimal"
+                    ? "WPM · On pace"
+                    : "WPM"}
+            </span>
           </div>
+          <p className="mt-2 text-xs text-slate-500">Target 120–140 WPM</p>
         </section>
         <section className="rounded-xl bg-amber-50/70 p-3.5">
           <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium leading-relaxed text-amber-900">
             <Sparkles size={14} /> Live presentation coaching
           </div>
-          <ul className="space-y-2 text-[13px] font-medium leading-relaxed text-amber-900">
-            <li>
-              Pacing spiked to 185 WPM on Slide {slide}. Pause before the next
-              figure.
-            </li>
-            <li>
-              Sustained audience applause detected. Allow 2 seconds before
-              continuing.
-            </li>
-          </ul>
+          <p className="text-[13px] font-medium leading-relaxed text-amber-900">
+            {advice}
+          </p>
         </section>
       </div>
     </section>
@@ -554,7 +526,16 @@ function AppShell() {
   const [gestureStatus, setGestureStatus] = useState("Camera off")
   const [playing, setPlaying] = useState(false)
   const [zoom, setZoom] = useState(false)
-  const pace = "optimal"
+  const [wpm, setWpm] = useState<number | null>(null)
+  const [pacePoints, setPacePoints] = useState<PacePoint[]>([])
+  const wordsRef = useRef<SpokenWord[]>([])
+  const pacePointsRef = useRef<PacePoint[]>([])
+  const burstRef = useRef<{ index: number; wpm: number } | null>(null)
+  const paceStartedRef = useRef<number | null>(null)
+  const band: PaceBand =
+    wpm == null ? "idle" : wpm > 140 ? "fast" : wpm < 120 ? "slow" : "optimal"
+  const latestPeak =
+    [...pacePoints].reverse().find((point) => point.peak) ?? null
   const [teleprompterAutoScroll, setTeleprompterAutoScroll] = useState(false)
   const [captions, setCaptions] = useState<CaptionEntry[]>(() => {
     try {
@@ -579,6 +560,40 @@ function AppShell() {
   const gestureStableSinceRef = useRef<number | null>(null)
   const gestureStartingRef = useRef(false)
   const handDetectorRef = useRef<GestureDetector | null>(null)
+  useEffect(() => {
+    if (captionStatus !== "listening") return
+    const timer = window.setInterval(() => {
+      const now = Date.now()
+      wordsRef.current = wordsRef.current.filter(
+        (word) => now - word.at <= 8000,
+      )
+      if (wordsRef.current.length === 0) return
+      const next = Math.round((wordsRef.current.length / 8) * 60)
+      const slideNow = wordsRef.current[wordsRef.current.length - 1].slide
+      const started = paceStartedRef.current ?? now
+      const points = pacePointsRef.current.slice()
+      points.push({
+        t: (now - started) / 1000,
+        wpm: next,
+        slide: slideNow,
+        peak: false,
+      })
+      if (next > 140) {
+        const burst = burstRef.current
+        if (!burst || next >= burst.wpm) {
+          burstRef.current = { index: points.length - 1, wpm: next }
+        }
+      } else if (burstRef.current) {
+        const index = burstRef.current.index
+        points[index] = { ...points[index], peak: true }
+        burstRef.current = null
+      }
+      pacePointsRef.current = points
+      setPacePoints(points)
+      setWpm(next)
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [captionStatus])
   useEffect(() => {
     const timer = setInterval(() => {
       if (!paused) setSeconds((value) => value + 1)
@@ -859,6 +874,15 @@ function AppShell() {
       setMic(false)
       setInterimCaption("")
       setCaptionStatus("idle")
+      const burst = burstRef.current
+      if (burst) {
+        burstRef.current = null
+        const points = pacePointsRef.current.map((point, index) =>
+          index === burst.index ? { ...point, peak: true } : point,
+        )
+        pacePointsRef.current = points
+        setPacePoints(points)
+      }
       captionChannelRef.current?.postMessage({ type: "interim", text: "" })
       captionChannelRef.current?.postMessage({ type: "status", active: false })
       return
@@ -908,6 +932,12 @@ function AppShell() {
             minute: "2-digit",
           }),
         }
+        const heardAt = Date.now()
+        for (const word of confirmed.trim().split(/\s+/)) {
+          if (word) {
+            wordsRef.current.push({ at: heardAt, slide: slideRef.current })
+          }
+        }
         setCaptions((items) => [...items, caption])
         captionChannelRef.current?.postMessage({ type: "caption", caption })
         handleVoiceModeCommand(confirmed)
@@ -936,6 +966,12 @@ function AppShell() {
     }
     recognitionRef.current = recognition
     shouldListenRef.current = true
+    wordsRef.current = []
+    burstRef.current = null
+    pacePointsRef.current = []
+    paceStartedRef.current = Date.now()
+    setWpm(null)
+    setPacePoints([])
     try {
       recognition.start()
       setMic(true)
@@ -1024,7 +1060,13 @@ function AppShell() {
           <h1 className="truncate text-[15px] font-semibold text-slate-800">
             {view === "analytics"
               ? "Presentation Performance Report"
-              : "Finance Report"}
+              : view === "attention"
+                ? "Attention dashboard"
+                : view === "students"
+                  ? "Students"
+                  : view === "sensing"
+                    ? "Pacing coach"
+                    : "Finance Report"}
           </h1>
           <div className="flex shrink-0 items-center gap-3">
             {view === "analytics" ? (
@@ -1129,7 +1171,9 @@ function AppShell() {
         <nav className="space-y-1">
           {[
             { path: "/", name: "Presenter workspace", icon: Layers },
-            { path: "/sensing", name: "Audience sensing", icon: Activity },
+            { path: "/sensing", name: "Pacing coach", icon: Activity },
+            { path: "/attention", name: "Attention dashboard", icon: Gauge },
+            { path: "/students", name: "Students", icon: Users },
             { path: "/qa", name: "Q&A session", icon: Mic },
             { path: "/audience", name: "Audience display", icon: Expand },
           ].map(({ path: href, name, icon: Icon }) => (
@@ -1294,7 +1338,10 @@ function AppShell() {
         <div
           className={cn(
             "mx-auto flex max-w-[1680px] flex-col gap-2.5 px-4 py-3 xl:px-5",
-            view === "analytics" || view === "audience"
+            view === "analytics" ||
+            view === "audience" ||
+            view === "attention" ||
+            view === "students"
               ? "h-full min-h-0 overflow-hidden"
               : "min-h-full lg:h-full lg:min-h-0",
           )}
@@ -1341,7 +1388,16 @@ function AppShell() {
           )}
           {(view === "presenter" || view === "sensing") && (
             <>
-              {pace === "optimal" && (
+              {band === "idle" && (
+                <div
+                  role="status"
+                  className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-slate-50 px-4 py-2 text-xs text-slate-500"
+                >
+                  <Activity size={15} /> Start live captions to measure speaking
+                  rate.
+                </div>
+              )}
+              {band === "optimal" && (
                 <div
                   role="status"
                   className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-emerald-50/80 px-4 py-2 text-xs"
@@ -1350,36 +1406,27 @@ function AppShell() {
                     <Activity size={15} /> You're in a great rhythm
                   </span>
                   <span className="font-semibold text-emerald-700">
-                    Your pace is clear, comfortable, and easy to follow.
+                    {wpm} WPM. Your pace is clear, comfortable, and easy to
+                    follow.
                   </span>
                 </div>
               )}
-              {pace === "fast" && (
+              {band === "fast" && (
                 <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-amber-50 px-4 py-2 text-xs">
                   <span className="flex items-center gap-2 font-medium text-amber-800">
-                    <Activity size={15} /> Speaking rate too fast 185 WPM
-                  </span>
-                  <button
-                    onClick={playHeartbeat}
-                    className="rounded-md bg-white px-2 py-1 font-medium text-amber-900"
-                  >
-                    Play heartbeat
-                  </button>
-                  <span className="text-slate-600">
-                    Take a breath, find your rhythm.
+                    <Activity size={15} /> Speaking rate too fast {wpm} WPM.
+                    Take a breath and pause at commas.
                   </span>
                 </div>
               )}
-              {pace === "slow" && (
+              {band === "slow" && (
                 <div
                   role="status"
                   className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-sky-100 bg-sky-100 px-4 py-2 text-xs"
                 >
                   <span className="flex items-center gap-2 font-medium text-sky-700">
-                    <Activity size={15} /> Pace is a little low 95 WPM
-                  </span>
-                  <span className="text-slate-600">
-                    Bring the energy up so the room stays with you.
+                    <Activity size={15} /> Pace is a little low {wpm} WPM. Keep
+                    your energy up!
                   </span>
                 </div>
               )}
@@ -1398,11 +1445,13 @@ function AppShell() {
                     <div
                       className={cn(
                         "relative aspect-video w-[min(100cqw,177.777777cqh)] max-w-full shrink-0 overflow-hidden bg-white shadow-[0_2px_12px_rgba(15,23,42,0.04)] ring-2 ring-inset",
-                        pace === "fast"
+                        band === "fast"
                           ? "ring-amber-400"
-                          : pace === "slow"
+                          : band === "slow"
                             ? "ring-sky-700"
-                            : "ring-emerald-500",
+                            : band === "optimal"
+                              ? "ring-emerald-500"
+                              : "ring-slate-200",
                       )}
                     >
                       <div
@@ -1541,7 +1590,7 @@ function AppShell() {
                   />
                 </div>
                 {view === "sensing" ? (
-                  <AudiencePulse slide={slide} />
+                  <AudiencePulse wpm={wpm} band={band} peak={latestPeak} />
                 ) : (
                   <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
                     <div className="flex items-center justify-between shrink-0 border-b border-border px-4 py-2.5">
@@ -2195,7 +2244,12 @@ function AppShell() {
               </div>
             </>
           )}
-          {view === "sensing" && <AcousticTimeline />}
+          {(view === "attention" || view === "students") && (
+            <ClassroomAttention
+              mode={view === "students" ? "students" : "attention"}
+            />
+          )}
+          {view === "sensing" && <PaceTimeline points={pacePoints} />}
           {view === "presenter" && (
             <div className="shrink-0 rounded-xl border border-border bg-white px-3 py-2">
               <div className="mb-1.5 flex items-center justify-between">
@@ -2286,14 +2340,20 @@ function AppShell() {
                 </button>
               </div>
             </footer>
+          ) : view === "attention" || view === "students" ? (
+            <footer className="flex shrink-0 items-center gap-2 text-[11px] text-slate-500">
+              <ShieldCheck size={13} /> Anonymous scores only. No names are
+              stored.
+            </footer>
           ) : (
             view !== "audience" && (
               <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <div className="hidden items-center gap-2 text-[10px] text-slate-500 xl:flex">
                   <ShieldCheck size={13} />
                   <span>
-                    Room sensing is processed on-device. No audience audio is
-                    stored.
+                    {view === "sensing"
+                      ? "Speaking rate stays on this device. Target 120–140 WPM."
+                      : "Room sensing is processed on-device. No audience audio is stored."}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2375,11 +2435,15 @@ function AppShell() {
             !stage && "lg:left-[var(--sidebar-width)]",
             view === "qa"
               ? "bg-sky-700"
-              : pace === "fast"
-                ? "bg-amber-500"
-                : pace === "slow"
-                  ? "bg-sky-700"
-                  : "bg-emerald-500",
+              : view === "presenter" || view === "sensing"
+                ? band === "fast"
+                  ? "bg-amber-500"
+                  : band === "slow"
+                    ? "bg-sky-700"
+                    : band === "optimal"
+                      ? "bg-emerald-500"
+                      : "bg-slate-200"
+                : "bg-emerald-500",
           )}
         />
       )}
@@ -2470,6 +2534,8 @@ const router = createBrowserRouter([
   { path: "/qa", Component: AppShell },
   { path: "/audience", Component: AppShell },
   { path: "/analytics", Component: AppShell },
+  { path: "/attention", Component: AppShell },
+  { path: "/students", Component: AppShell },
   { path: "*", Component: AppShell },
 ])
 export default function App() {

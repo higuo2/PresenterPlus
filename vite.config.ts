@@ -5,6 +5,16 @@ import path from "node:path"
 
 import siteConfiguration from "./.figma/make/site.json"
 
+const attentionProxy = {
+  "/cam": {
+    target: "http://127.0.0.1:8000",
+    changeOrigin: true,
+    ws: true,
+    rewrite: (requestPath: string) =>
+      requestPath.replace(/^\/cam/, "") || "/",
+  },
+}
+
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // .figma/make/deploy-preview passes `--mode development` for cached-preview builds.
@@ -39,13 +49,15 @@ export default defineConfig(({ mode }) => {
       host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
       port: parseInt(process.env.PORT || "8443"),
       strictPort: true,
+      proxy: attentionProxy,
       watch: {
-        ignored: ["**/.figma/**"],
+        ignored: ["**/.figma/**", "**/classroom-attention-monitor/**"],
       },
     },
     preview: {
       host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
       port: parseInt(process.env.PORT || "8443"),
+      proxy: attentionProxy,
     },
   }
 })

@@ -135,6 +135,80 @@ Status: tested successfully in the local preview on 2026-10-21. Microphone permi
 - `oxfmt --check src/app/App.tsx` passes.
 - The project user successfully completed the end-to-end manual camera-start and two-hand Q&A transition test.
 
-### Current next priority
+## Completed: Attention dashboard in place of ambient sensing
 
-Task 3, touchless slide navigation and spatial targeting: voice commands for slide navigation, gesture primitives, and a virtual laser pointer.
+Status: tested and accepted in the local preview on 2026-10-26.
+
+This replaces the ambient-sensing half of Task 2. Attention dashboard and Students read the camera through the Python service in `classroom-attention-monitor`. The old Audience sensing page is now Pacing coach at `/sensing`. Live speaking-rate behaviour is described in the next section and has not been confirmed in a speaking test.
+
+### What works now
+
+1. **Attention dashboard** at `/attention` shows the selected session: class average, present count, phone incidents, hand raises, blink rate, duration, the live frame, the activity list, attention over time, the engagement bands, and phone usage.
+2. **Students** at `/students` uses the same selected session. Cards show an anonymous label, track id, last seen time, score, forward ratio, phone, hand raise, blinks, and a per-student curve. Names are not stored.
+3. The session menu defaults to **Latest session**. Leaving the menu on Latest follows the active recording. Choosing a numbered session keeps the charts on that session.
+4. **Start stream** opens camera `0`, records a session named Live session, and switches the button to **Stop session**. The button changes as soon as it is clicked. The status stays on Connecting… until the first frame. Class average, people in frame, phones, hand raises, and the time chart then follow the live frames.
+5. **Stop session** stops the recording and turns the camera off.
+6. With a session running, the selected session refreshes about every 2 seconds. While idle, it refreshes about every 15 seconds. The choice made on one page is still selected on the other.
+7. If the Python service is not running, the pages show a built-in set of numbers.
+
+### How to run it
+
+From `classroom-attention-monitor`, with its existing Python 3.12 virtual environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000
+```
+
+Then, from this project, `pnpm dev`, and open http://localhost:8443/attention .
+
+### Test procedure
+
+1. Start the Python service on port 8000, then open http://localhost:8443/attention .
+2. Confirm the menu says **Latest session** and the live panel says **Start stream**.
+3. Click **Start stream**. Confirm the button changes to **Stop session** and the status shows Connecting… before a frame arrives.
+4. After the first frame, confirm the picture appears and the class-average number moves with the room.
+5. Open **Students** and confirm the cards belong to the same session, with no personal names.
+6. Pick an earlier session, such as a seeded lesson, and confirm the charts stay on that session while the camera can still be running.
+7. Return to **Latest session**, click **Stop session**, and confirm the preview clears and the button returns to **Start stream**.
+
+### Verification completed
+
+- The project user confirmed on 2026-10-26 that the attention dashboard and students flows are tested and finished.
+
+### Current limitations
+
+- The first frame waits while the face, pose, and object models load for that session.
+- The laptop camera can return a grey placeholder frame until the camera itself is delivering a picture. That is outside this page.
+- Attention distribution on the dashboard uses the labels Excellent, Good, Low, and Very low. Student cards use Excellent, Good, Warning, and Critical.
+- The old Audience sensing page is now **Pacing coach** at `/sensing`. Room-energy events are gone. Speaking-rate behaviour is in the next section.
+
+## In progress: live pacing from confirmed captions
+
+Status: implemented in the local preview on 2026-10-26. Not tested by the project user. Do not treat this section as finished.
+
+The Pacing coach no longer shows a fixed 185 WPM sample. Presenter workspace and `/sensing` share one measured rate. Session analytics still uses its original demonstration pacing chart.
+
+### Logic
+
+1. **Start live captions** is the only input. The browser speech recogniser stays on `en-US`. A second microphone session is not opened.
+2. Only final caption text is counted. Interim text is ignored, because the recogniser rewrites the same phrase until the phrase is confirmed. Words are split on spaces and stamped with the confirmation time and the current slide number.
+3. Every 2 seconds, words older than 8 seconds are dropped. If any words remain, WPM is `word count / 8 × 60`.
+4. Bands: 120–140 is the green “You're in a great rhythm” state; above 140 is the amber “Speaking rate too fast. Take a breath and pause at commas.” state; below 120 is the blue “Pace is a little low. Keep your energy up!” state.
+5. An empty 8-second window does not switch the banner to slow. The last band stays until a new confirmed phrase arrives. Before the first phrase, both pages say to start live captions.
+6. Each 2-second sample is appended to the speaking-rate chart on the Pacing coach page. A run that goes above 140 and then returns to 140 or below leaves one peak marker, labelled with the WPM and the slide at the highest sample in that run. Stopping captions seals an unfinished peak. Starting captions again clears the words, the chart, and the current rate.
+7. The slide frame and the bottom edge follow the same band on Presenter workspace and Pacing coach. There is no heartbeat control.
+
+### How to test later
+
+Use Chrome. Open Presenter workspace or Pacing coach, start live captions, and speak English for about 10 seconds.
+
+1. Before captions start, the banner asks to start live captions. The rate reads as a dash.
+2. At a comfortable pace, the banner turns green and the number sits around 120–140.
+3. Speaking quickly turns the banner amber. After the rate falls back to 140 or below, the Pacing coach chart shows one peak and the slide number.
+4. Pausing for several seconds does not turn the banner blue by itself.
+5. Starting captions again clears the previous chart.
+
+### Not verified
+
+- No end-to-end speaking test has been run.
+- `pnpm build` was not re-run for this change.
