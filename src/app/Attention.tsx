@@ -32,26 +32,27 @@ type StudentRow = {
   curve: number[]
 }
 
-type NoteKind =
-  | "session_started"
-  | "session_ended"
-  | "phone_detected"
-  | "phone_cleared"
-  | "hand_raised"
-  | "attention_dropped"
-  | "attention_recovered"
-  | "student_joined"
+type NoteKind = "session_started" | "session_ended" | "phone_detected" | "phone_cleared" | "hand_raised" | "attention_dropped" | "attention_recovered" | "student_joined"
 
-type Note = { kind: NoteKind; timestamp: number; title: string; detail: string }
+type Note = { kind: NoteKind timestamp: number title: string detail: string }
 
-const eventIcon: Record<NoteKind, { icon: LucideIcon; tone: string }> = {
+const eventIcon: Record<NoteKind, { icon: LucideIcon tone: string }> = {
   session_started: { icon: Flag, tone: "bg-indigo-500/10 text-indigo-500" },
   session_ended: { icon: FlagOff, tone: "bg-slate-100 text-slate-400" },
   phone_detected: { icon: Smartphone, tone: "bg-rose-500/10 text-rose-500" },
-  phone_cleared: { icon: Smartphone, tone: "bg-emerald-500/10 text-emerald-600" },
+  phone_cleared: {
+    icon: Smartphone,
+    tone: "bg-emerald-500/10 text-emerald-600",
+  },
   hand_raised: { icon: Hand, tone: "bg-sky-500/10 text-sky-500" },
-  attention_dropped: { icon: TrendingDown, tone: "bg-amber-500/10 text-amber-500" },
-  attention_recovered: { icon: TrendingUp, tone: "bg-emerald-500/10 text-emerald-600" },
+  attention_dropped: {
+    icon: TrendingDown,
+    tone: "bg-amber-500/10 text-amber-500",
+  },
+  attention_recovered: {
+    icon: TrendingUp,
+    tone: "bg-emerald-500/10 text-emerald-600",
+  },
   student_joined: { icon: UserPlus, tone: "bg-sky-500/10 text-sky-500" },
 }
 
@@ -63,7 +64,7 @@ type Report = {
   hands: number
   blink: number
   minutes: number
-  timeline: { t: number; v: number }[]
+  timeline: { t: number v: number }[]
   students: StudentRow[]
   events: Note[]
 }
@@ -77,27 +78,129 @@ type Snap = {
 }
 
 const demoStudents: StudentRow[] = [
-  { student_id: 1, label: "Student 1", avg_attention: 88.17, avg_blink_rate: 15.01, phone_usage_ratio: 0, hand_raised_ratio: 0.0399, curve: [89, 92, 95, 97, 98, 98, 98, 97, 88, 86, 82, 75, 95, 77, 83, 77] },
-  { student_id: 2, label: "Student 2", avg_attention: 57.92, avg_blink_rate: 15.13, phone_usage_ratio: 0.0033, hand_raised_ratio: 0, curve: [53, 69, 63, 69, 83, 76, 74, 78, 64, 51, 51, 47, 40, 39, 47, 60] },
-  { student_id: 3, label: "Student 3", avg_attention: 42.21, avg_blink_rate: 15.05, phone_usage_ratio: 0.1761, hand_raised_ratio: 0, curve: [43, 52, 49, 67, 58, 59, 54, 48, 40, 36, 26, 25, 31, 27, 30, 32] },
-  { student_id: 4, label: "Student 4", avg_attention: 77.15, avg_blink_rate: 14.77, phone_usage_ratio: 0, hand_raised_ratio: 0.0233, curve: [73, 91, 84, 82, 97, 85, 84, 78, 81, 63, 64, 71, 58, 61, 67, 87] },
-  { student_id: 5, label: "Student 5", avg_attention: 84.62, avg_blink_rate: 14.95, phone_usage_ratio: 0, hand_raised_ratio: 0.0233, curve: [96, 84, 96, 92, 98, 98, 98, 90, 83, 89, 80, 71, 73, 85, 70, 74] },
-  { student_id: 6, label: "Student 6", avg_attention: 47.6, avg_blink_rate: 15.07, phone_usage_ratio: 0.0831, hand_raised_ratio: 0, curve: [53, 54, 66, 70, 71, 49, 59, 50, 46, 30, 40, 30, 41, 34, 36, 37] },
-  { student_id: 7, label: "Student 7", avg_attention: 49.67, avg_blink_rate: 15.26, phone_usage_ratio: 0.0797, hand_raised_ratio: 0, curve: [41, 67, 55, 64, 62, 67, 70, 53, 56, 45, 31, 38, 42, 35, 52, 36] },
-  { student_id: 8, label: "Student 8", avg_attention: 83.38, avg_blink_rate: 14.94, phone_usage_ratio: 0, hand_raised_ratio: 0.0332, curve: [98, 98, 98, 98, 96, 80, 89, 77, 69, 79, 78, 73, 77, 87, 76, 82] },
+  {
+    student_id: 1,
+    label: "Student 1",
+    avg_attention: 88.17,
+    avg_blink_rate: 15.01,
+    phone_usage_ratio: 0,
+    hand_raised_ratio: 0.0399,
+    curve: [89, 92, 95, 97, 98, 98, 98, 97, 88, 86, 82, 75, 95, 77, 83, 77],
+  },
+  {
+    student_id: 2,
+    label: "Student 2",
+    avg_attention: 57.92,
+    avg_blink_rate: 15.13,
+    phone_usage_ratio: 0.0033,
+    hand_raised_ratio: 0,
+    curve: [53, 69, 63, 69, 83, 76, 74, 78, 64, 51, 51, 47, 40, 39, 47, 60],
+  },
+  {
+    student_id: 3,
+    label: "Student 3",
+    avg_attention: 42.21,
+    avg_blink_rate: 15.05,
+    phone_usage_ratio: 0.1761,
+    hand_raised_ratio: 0,
+    curve: [43, 52, 49, 67, 58, 59, 54, 48, 40, 36, 26, 25, 31, 27, 30, 32],
+  },
+  {
+    student_id: 4,
+    label: "Student 4",
+    avg_attention: 77.15,
+    avg_blink_rate: 14.77,
+    phone_usage_ratio: 0,
+    hand_raised_ratio: 0.0233,
+    curve: [73, 91, 84, 82, 97, 85, 84, 78, 81, 63, 64, 71, 58, 61, 67, 87],
+  },
+  {
+    student_id: 5,
+    label: "Student 5",
+    avg_attention: 84.62,
+    avg_blink_rate: 14.95,
+    phone_usage_ratio: 0,
+    hand_raised_ratio: 0.0233,
+    curve: [96, 84, 96, 92, 98, 98, 98, 90, 83, 89, 80, 71, 73, 85, 70, 74],
+  },
+  {
+    student_id: 6,
+    label: "Student 6",
+    avg_attention: 47.6,
+    avg_blink_rate: 15.07,
+    phone_usage_ratio: 0.0831,
+    hand_raised_ratio: 0,
+    curve: [53, 54, 66, 70, 71, 49, 59, 50, 46, 30, 40, 30, 41, 34, 36, 37],
+  },
+  {
+    student_id: 7,
+    label: "Student 7",
+    avg_attention: 49.67,
+    avg_blink_rate: 15.26,
+    phone_usage_ratio: 0.0797,
+    hand_raised_ratio: 0,
+    curve: [41, 67, 55, 64, 62, 67, 70, 53, 56, 45, 31, 38, 42, 35, 52, 36],
+  },
+  {
+    student_id: 8,
+    label: "Student 8",
+    avg_attention: 83.38,
+    avg_blink_rate: 14.94,
+    phone_usage_ratio: 0,
+    hand_raised_ratio: 0.0332,
+    curve: [98, 98, 98, 98, 96, 80, 89, 77, 69, 79, 78, 73, 77, 87, 76, 82],
+  },
 ]
 
 const demoEvents: Note[] = [
-  { kind: "session_ended", timestamp: 600, title: "Session ended", detail: "301 frames analyzed" },
-  { kind: "attention_recovered", timestamp: 504, title: "Attention recovered", detail: "Class average back to 66" },
-  { kind: "attention_dropped", timestamp: 400, title: "Attention dropped", detail: "Class average fell to 49" },
-  { kind: "phone_detected", timestamp: 240, title: "Phone detected", detail: "1 phone visible in class" },
-  { kind: "hand_raised", timestamp: 120, title: "Hand raised", detail: "1 hand up" },
-  { kind: "student_joined", timestamp: 120, title: "Student joined", detail: "8 students now present" },
-  { kind: "session_started", timestamp: 0, title: "Session started", detail: "Demo lesson · source synthetic" },
+  {
+    kind: "session_ended",
+    timestamp: 600,
+    title: "Session ended",
+    detail: "301 frames analyzed",
+  },
+  {
+    kind: "attention_recovered",
+    timestamp: 504,
+    title: "Attention recovered",
+    detail: "Class average back to 66",
+  },
+  {
+    kind: "attention_dropped",
+    timestamp: 400,
+    title: "Attention dropped",
+    detail: "Class average fell to 49",
+  },
+  {
+    kind: "phone_detected",
+    timestamp: 240,
+    title: "Phone detected",
+    detail: "1 phone visible in class",
+  },
+  {
+    kind: "hand_raised",
+    timestamp: 120,
+    title: "Hand raised",
+    detail: "1 hand up",
+  },
+  {
+    kind: "student_joined",
+    timestamp: 120,
+    title: "Student joined",
+    detail: "8 students now present",
+  },
+  {
+    kind: "session_started",
+    timestamp: 0,
+    title: "Session started",
+    detail: "Demo lesson · source synthetic",
+  },
 ]
 
-const demoCurve = [64, 67, 70, 72, 69, 72, 77, 79, 80, 80, 79, 75, 81, 74, 75, 75, 72, 65, 64, 59, 58, 57, 54, 50, 54, 53, 54, 49, 56, 54, 59, 57, 66, 64]
+const demoCurve = [
+  64, 67, 70, 72, 69, 72, 77, 79, 80, 80, 79, 75, 81, 74, 75, 75, 72, 65, 64,
+  59, 58, 57, 54, 50, 54, 53, 54, 49, 56, 54, 59, 57, 66, 64,
+]
 
 const demoReport: Report = {
   demo: true,
@@ -276,7 +379,9 @@ function activityOf(
         kind: "phone_detected",
         timestamp: current.timestamp,
         title: "Phone detected",
-        detail: `${current.phones_visible} phone${current.phones_visible > 1 ? "s" : ""} visible in class`,
+        detail: `${current.phones_visible} phone${
+          current.phones_visible > 1 ? "s" : ""
+        } visible in class`,
       })
     } else if (current.phones_visible === 0 && prev.phones_visible > 0) {
       events.push({
@@ -291,7 +396,9 @@ function activityOf(
         kind: "hand_raised",
         timestamp: current.timestamp,
         title: "Hand raised",
-        detail: `${current.hands_raised} hand${current.hands_raised > 1 ? "s" : ""} up`,
+        detail: `${current.hands_raised} hand${
+          current.hands_raised > 1 ? "s" : ""
+        } up`,
       })
     }
     if (!low && current.avg_attention < 45) {
@@ -416,7 +523,7 @@ function ScoreRing({ value }: { value: number }) {
   )
 }
 
-function Sparkline({ values, id }: { values: number[]; id: number }) {
+function Sparkline({ values, id }: { values: number[] id: number }) {
   if (values.length < 2) return null
   const width = 240
   const height = 40
@@ -428,7 +535,11 @@ function Sparkline({ values, id }: { values: number[]; id: number }) {
   const line = monotonePath(points)
   const area = `${line} L ${width} ${height} L 0 ${height} Z`
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="mt-3 h-10 w-full" aria-hidden>
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="mt-3 h-10 w-full"
+      aria-hidden
+    >
       <defs>
         <linearGradient id={`spark-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#0369a1" stopOpacity="0.3" />
@@ -466,8 +577,8 @@ export default function ClassroomAttention({
   const runningRef = useRef(false)
   const pendingRef = useRef<"start" | "stop" | null>(null)
   const pickedRef = useRef<number | null>(null)
-  const liveTail = useRef<{ t: number; v: number } | null>(null)
-  const curveCache = useRef<{ key: string; curves: number[][]; at: number }>({
+  const liveTail = useRef<{ t: number v: number } | null>(null)
+  const curveCache = useRef<{ key: string curves: number[][] at: number }>({
     key: "",
     curves: [],
     at: 0,
@@ -654,7 +765,8 @@ export default function ClassroomAttention({
           const timeline =
             liveTail.current &&
             (current.timeline.length === 0 ||
-              liveTail.current.t > current.timeline[current.timeline.length - 1].t)
+              liveTail.current.t >
+                current.timeline[current.timeline.length - 1].t)
               ? [...current.timeline, liveTail.current]
               : current.timeline
           return {
@@ -735,28 +847,35 @@ export default function ClassroomAttention({
                 key={student.student_id}
                 className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                <span className={`absolute inset-x-0 top-0 h-0.5 opacity-70 ${tone.bar}`} />
+                <span
+                  className={`absolute inset-x-0 top-0 h-0.5 opacity-70 ${tone.bar}`}
+                />
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
                       <User className="h-5 w-5 text-slate-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{student.label}</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {student.label}
+                      </p>
                       <p className="text-[11px] text-slate-500">
-                        Track #{student.track_id ?? student.student_id} · last seen{" "}
-                        {fmtClock(student.last_seen ?? 0)}
+                        Track #{student.track_id ?? student.student_id} · last
+                        seen {fmtClock(student.last_seen ?? 0)}
                       </p>
                     </div>
                   </div>
                   <ScoreRing value={student.avg_attention} />
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 ${tone.badge}`}>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 ${tone.badge}`}
+                  >
                     {tone.name}
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-medium leading-4 text-slate-500">
-                    {forward >= 0.5 ? "↑" : "↓"} {Math.round(forward * 100)}% forward
+                    {forward >= 0.5 ? "↑" : "↓"} {Math.round(forward * 100)}%
+                    forward
                   </span>
                   {student.phone_usage_ratio > 0.02 && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium leading-4 text-rose-500">
@@ -770,7 +889,8 @@ export default function ClassroomAttention({
                     </span>
                   )}
                   <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-medium leading-4 text-slate-500">
-                    <Eye className="h-3 w-3" /> {student.blink_total ?? 0} blinks
+                    <Eye className="h-3 w-3" /> {student.blink_total ?? 0}{" "}
+                    blinks
                   </span>
                 </div>
                 <Sparkline values={student.curve} id={student.student_id} />
@@ -783,14 +903,33 @@ export default function ClassroomAttention({
   }
 
   const charts = report
-  const bands = ["Excellent", "Good", "Low", "Very low"].map((label) => ({
-    label,
-    count: charts.students.filter(
+  const bandStyle = {
+    Excellent: { dot: "bg-emerald-500", bar: "bg-emerald-500" },
+    Good: { dot: "bg-sky-500", bar: "bg-sky-500" },
+    Low: { dot: "bg-amber-400", bar: "bg-amber-400" },
+    "Very low": { dot: "bg-rose-500", bar: "bg-rose-500" },
+  } as const
+  const bandTotal = Math.max(1, charts.students.length || charts.present)
+  const bands = ["Excellent", "Good", "Low", "Very low"].map((label) => {
+    const count = charts.students.filter(
       (student) => band(student.avg_attention) === label,
-    ).length,
-  }))
+    ).length
+    return {
+      label: label as keyof typeof bandStyle,
+      count,
+      percent: Math.round((count / bandTotal) * 100),
+      ...bandStyle[(label as keyof typeof bandStyle)],
+    }
+  })
   const bandMax = Math.max(1, ...bands.map((item) => item.count))
-  const chart = { width: 1000, height: 260, left: 42, right: 8, top: 6, bottom: 24 }
+  const chart = {
+    width: 1200,
+    height: 270,
+    left: 34,
+    right: 12,
+    top: 10,
+    bottom: 32,
+  }
   const plotWidth = chart.width - chart.left - chart.right
   const plotHeight = chart.height - chart.top - chart.bottom
   const yFor = (value: number) => chart.top + (1 - value / 100) * plotHeight
@@ -798,8 +937,13 @@ export default function ClassroomAttention({
   const series =
     source.length <= 800
       ? source
-      : source.filter((_, index) => index % Math.ceil(source.length / 800) === 0)
-  if (series.length > 0 && series[series.length - 1] !== source[source.length - 1]) {
+      : source.filter(
+          (_, index) => index % Math.ceil(source.length / 800) === 0,
+        )
+  if (
+    series.length > 0 &&
+    series[series.length - 1] !== source[source.length - 1]
+  ) {
     series.push(source[source.length - 1])
   }
   const start = series[0]?.t ?? 0
@@ -816,11 +960,12 @@ export default function ClassroomAttention({
     plotted.length > 1
       ? `${line} L ${plotted[plotted.length - 1][0]} ${yFor(0)} L ${plotted[0][0]} ${yFor(0)} Z`
       : ""
-  const xMarks: { x: number; label: string }[] = []
+  const xMarks: { x: number label: string }[] = []
   for (const point of series) {
     const x = xAt(point.t)
     const previous = xMarks[xMarks.length - 1]
-    if (!previous || x - previous.x >= 64) xMarks.push({ x, label: fmtClock(point.t) })
+    if (!previous || x - previous.x >= 64)
+      xMarks.push({ x, label: fmtClock(point.t) })
   }
   if (xMarks.length > 0) {
     const last = xMarks[xMarks.length - 1]
@@ -832,12 +977,32 @@ export default function ClassroomAttention({
     }
   }
   const metrics = [
-    { label: "Avg attention", value: String(Math.round(report.average)), unit: "%", icon: Gauge },
+    {
+      label: "Avg attention",
+      value: String(Math.round(report.average)),
+      unit: "%",
+      icon: Gauge,
+    },
     { label: "Present", value: String(report.present), unit: "", icon: Users },
-    { label: "Phone usage", value: String(report.phones), unit: "", icon: Smartphone },
+    {
+      label: "Phone usage",
+      value: String(report.phones),
+      unit: "",
+      icon: Smartphone,
+    },
     { label: "Hand raises", value: String(report.hands), unit: "", icon: Hand },
-    { label: "Blink rate", value: report.blink.toFixed(1), unit: "/min", icon: Eye },
-    { label: "Duration", value: report.minutes.toFixed(1), unit: "min", icon: Clock3 },
+    {
+      label: "Blink rate",
+      value: report.blink.toFixed(1),
+      unit: "/min",
+      icon: Eye,
+    },
+    {
+      label: "Duration",
+      value: report.minutes.toFixed(1),
+      unit: "min",
+      icon: Clock3,
+    },
   ]
 
   return (
@@ -871,7 +1036,9 @@ export default function ClassroomAttention({
             <span className="flex items-center gap-2 text-sm font-medium text-slate-800">
               <span
                 className={`h-2 w-2 rounded-full ${
-                  running && live ? "animate-pulse bg-emerald-500" : "bg-slate-300"
+                  running && live
+                    ? "animate-pulse bg-emerald-500"
+                    : "bg-slate-300"
                 }`}
               />
               {running ? (live ? "Live" : "Connecting…") : "Idle"}
@@ -915,7 +1082,10 @@ export default function ClassroomAttention({
               </span>
             )}
           </div>
-          <ol className="mt-3 max-h-72 space-y-1 overflow-y-auto" aria-label="Session activity timeline">
+          <ol
+            className="mt-3 max-h-72 space-y-1 overflow-y-auto"
+            aria-label="Session activity timeline"
+          >
             {report.events.map((event, index) => {
               const meta = eventIcon[event.kind]
               const Icon = meta.icon
@@ -941,7 +1111,9 @@ export default function ClassroomAttention({
                         {fmtClock(event.timestamp)}
                       </span>
                     </div>
-                    <p className="truncate text-xs text-slate-400">{event.detail}</p>
+                    <p className="truncate text-xs text-slate-400">
+                      {event.detail}
+                    </p>
                   </div>
                 </li>
               )
@@ -949,7 +1121,7 @@ export default function ClassroomAttention({
           </ol>
         </section>
       </div>
-      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
         <h2 className="text-[15px] font-semibold text-slate-900">
           Attention over time
         </h2>
@@ -994,7 +1166,13 @@ export default function ClassroomAttention({
               key={mark.x}
               x={mark.x}
               y={chart.height - 4}
-              textAnchor={index === 0 ? "start" : index === xMarks.length - 1 ? "end" : "middle"}
+              textAnchor={
+                index === 0
+                  ? "start"
+                  : index === xMarks.length - 1
+                    ? "end"
+                    : "middle"
+              }
               fill="#64748b"
               fontSize="11"
             >
@@ -1014,30 +1192,38 @@ export default function ClassroomAttention({
           )}
         </svg>
       </section>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+      <div className="grid auto-rows-fr gap-3 lg:grid-cols-2">
+        <section className="flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
           <h2 className="text-[15px] font-semibold text-slate-900">
             Attention distribution
           </h2>
           <p className="text-xs text-slate-400">
             How many students fall in each engagement band
           </p>
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-5 flex flex-1 flex-col justify-center gap-3">
             {bands.map((item) => (
-              <li key={item.label} className="flex items-center gap-3 text-xs text-slate-500">
-                <span className="w-16">{item.label}</span>
-                <span className="h-2 flex-1 rounded-full bg-slate-100">
+              <li
+                key={item.label}
+                className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600"
+              >
+                <span className="flex w-24 shrink-0 items-center gap-2 font-medium">
+                  <span className={`h-2 w-2 rounded-full ${item.dot}`} />
+                  {item.label}
+                </span>
+                <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-200/70">
                   <span
-                    className="block h-2 rounded-full bg-sky-700"
+                    className={`block h-full rounded-full ${item.bar}`}
                     style={{ width: `${(item.count / bandMax) * 100}%` }}
                   />
                 </span>
-                <span className="w-4 text-right font-mono">{item.count}</span>
+                <span className="w-16 shrink-0 text-right font-mono text-[11px] text-slate-500">
+                  {item.count} ({item.percent}%)
+                </span>
               </li>
             ))}
           </ul>
         </section>
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+        <section className="flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
           <h2 className="text-[15px] font-semibold text-slate-900">
             Phone usage
           </h2>
@@ -1054,35 +1240,67 @@ export default function ClassroomAttention({
             const radius = 42
             const circumference = 2 * Math.PI * radius
             return (
-              <div className="mt-4 flex items-center gap-6">
-                <svg viewBox="0 0 120 120" className="h-36 w-36 shrink-0" role="img" aria-label={`${phonePct}% phone usage`}>
-                  <circle cx="60" cy="60" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="14" />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r={radius}
-                    fill="none"
-                    stroke="#0369a1"
-                    strokeWidth="14"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(phonePct / 100) * circumference} ${circumference}`}
-                    transform="rotate(-90 60 60)"
-                  />
-                  <text x="60" y="56" textAnchor="middle" className="fill-slate-900 text-[22px] font-bold">
-                    {phonePct}%
-                  </text>
-                  <text x="60" y="72" textAnchor="middle" fill="#94a3b8" fontSize="10">
-                    on phone
-                  </text>
-                </svg>
-                <ul className="space-y-2 text-xs text-slate-500">
-                  <li className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-sky-700" />
-                    On phone {phonePct}%
+              <div className="mt-5 grid flex-1 grid-cols-2 items-center gap-6">
+                <div className="relative flex justify-center">
+                  <svg
+                    viewBox="0 0 120 120"
+                    className="h-40 w-40"
+                    role="img"
+                    aria-label={`${phonePct}% phone usage`}
+                  >
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r={radius}
+                      fill="none"
+                      stroke="#e2e8f0"
+                      strokeWidth="18"
+                    />
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r={radius}
+                      fill="none"
+                      stroke="#0369a1"
+                      strokeWidth="18"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(phonePct / 100) * circumference} ${circumference}`}
+                      transform="rotate(-90 60 60)"
+                    />
+                  </svg>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold leading-none text-slate-900">
+                      {phonePct}%
+                    </span>
+                    <span className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                      on phone
+                    </span>
+                  </div>
+                </div>
+                <ul className="space-y-3 text-xs text-slate-600">
+                  <li className="rounded-xl bg-sky-50 px-3 py-2.5">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-sky-700" />
+                        On phone
+                      </span>
+                      <b className="font-mono text-slate-800">{phonePct}%</b>
+                    </span>
+                    <span className="mt-1 block text-[11px] text-slate-400">
+                      {withPhone} of {total} students
+                    </span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-slate-200" />
-                    No phone {freePct}%
+                  <li className="rounded-xl bg-slate-50 px-3 py-2.5">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                        Phone-free
+                      </span>
+                      <b className="font-mono text-slate-800">{freePct}%</b>
+                    </span>
+                    <span className="mt-1 block text-[11px] text-slate-400">
+                      {Math.max(0, total - withPhone)} of {total} students
+                    </span>
                   </li>
                 </ul>
               </div>

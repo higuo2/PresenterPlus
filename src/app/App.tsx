@@ -26,6 +26,7 @@ import {
   CircleHelp,
   Clock3,
   Download,
+  Eye,
   Expand,
   FileText,
   Gauge,
@@ -45,6 +46,7 @@ import {
   Share2,
   ShieldCheck,
   Sparkles,
+  Smartphone,
   Square,
   X,
 } from "lucide-react"
@@ -230,7 +232,9 @@ type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
 type CaptionMessage = { type: "caption" caption: CaptionEntry } | {
   type: "interim"
   text: string
-} | { type: "status" active: boolean }
+} | { type: "status" active: boolean } | { type: "pace" wpm: number | null } | {
+  type: "clear"
+}
 function Wave({
   color = "bg-sky-700",
   small = false,
@@ -271,9 +275,10 @@ function Slide({ number = 1 }: { number?: number compact?: boolean }) {
     />
   )
 }
-type SpokenWord = { at: number; slide: number }
-type PacePoint = { t: number; wpm: number; slide: number; peak: boolean }
+type SpokenWord = { at: number slide: number }
+type PacePoint = { t: number wpm: number slide: number peak: boolean }
 type PaceBand = "idle" | "optimal" | "fast" | "slow"
+type SessionPhase = "ready" | "live" | "paused" | "ended"
 
 const paceY = (wpm: number) => {
   const clamped = Math.max(100, Math.min(200, wpm))
@@ -290,19 +295,20 @@ function PaceTimeline({ points }: { points: PacePoint[] }) {
   const line = points
     .map(
       (point, index) =>
-        `${index ? "L" : "M"}${paceX(index, points.length).toFixed(1)},${paceY(point.wpm).toFixed(1)}`,
+        `${
+          index ? "L" : "M"
+        }${paceX(index, points.length).toFixed(1)},${paceY(point.wpm).toFixed(1)}`,
     )
     .join(" ")
   const last = points[points.length - 1]
   const mid = points[Math.floor(points.length / 2)]
   return (
     <div className="shrink-0 rounded-xl border border-border bg-white px-3 py-2">
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
-          Speaking rate
-        </span>
-        <span className="font-mono text-[10px] text-slate-400">
-          Target 120–140 WPM
+      <div className="mb-1.5 flex items-center">
+        <span className="flex items-center gap-2 text-[11px] text-slate-500">
+          <Activity size={13} className="text-slate-400" />
+          SPEAKING RATE
+          <span className="ml-2 text-slate-600">Target 120–140 WPM</span>
         </span>
       </div>
       <div className="relative h-16">
@@ -358,15 +364,361 @@ function PaceTimeline({ points }: { points: PacePoint[] }) {
     </div>
   )
 }
+function AudienceAttentionAnalytics() {
+  const attention = [64, 67, 70, 72, 69, 74, 79, 81, 84, 78, 68, 62, 57, 64, 70]
+  const chart = { left: 28, right: 1088, top: 22, bottom: 210 }
+  const chartPoints: Array<[number, number]> = attention.map((value, index) => [
+    chart.left + (index / (attention.length - 1)) * (chart.right - chart.left),
+    chart.top + (1 - value / 100) * (chart.bottom - chart.top),
+  ])
+  const line = chartPoints.slice(1).reduce((path, point, index) => {
+    const previous = chartPoints[index]
+    const before = chartPoints[Math.max(0, index - 1)]
+    const after = chartPoints[Math.min(chartPoints.length - 1, index + 2)]
+    const controlDistance = (point[0] - previous[0]) / 6
+    return `${path} C ${previous[0] + controlDistance},${previous[1] + (point[1] - before[1]) / 6} ${point[0] - controlDistance},${point[1] - (after[1] - previous[1]) / 6} ${point[0]},${point[1]}`
+  }, `M ${chartPoints[0][0]},${chartPoints[0][1]}`)
+  const area = `${line} L ${chartPoints[chartPoints.length - 1][0]},${chart.bottom} L ${chartPoints[0][0]},${chart.bottom} Z`
+  const peakIndex = attention.indexOf(Math.max(...attention))
+  const peakPoint = chartPoints[peakIndex]
+  return (
+    <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-[15px] font-semibold text-slate-900">
+            Audience attention
+          </h2>
+          <p className="mt-1 text-xs text-slate-400">
+            Engagement patterns from anonymous room signals
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Strong
+          connection
+        </span>
+      </div>
+      <div className="mt-4 grid items-stretch gap-3 xl:grid-cols-[270px_minmax(0,1fr)]">
+        <article className="h-full overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 p-5 text-white shadow-sm">
+          <div className="flex items-center justify-between text-sky-100">
+            <span className="flex items-center gap-2 text-xs font-medium">
+              <Eye size={15} /> Audience pulse
+            </span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium">
+              avg score
+            </span>
+          </div>
+          <div className="mt-5 flex items-end gap-3">
+            <span className="font-mono text-5xl font-bold tracking-tight">
+              76
+            </span>
+            <span className="mb-1 text-sm text-sky-100">/ 100</span>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-slate-300">
+            The room stayed engaged through the financial comparison, with one
+            short attention dip.
+          </p>
+          <div className="mt-5 grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                Present
+              </p>
+              <p className="mt-1 font-mono text-xl font-semibold">8</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                Peak
+              </p>
+              <p className="mt-1 font-mono text-xl font-semibold">84%</p>
+            </div>
+          </div>
+        </article>
+        <article className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800">
+                Attention over time
+              </h3>
+              <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+                Class average across the session
+              </p>
+            </div>
+            <span className="rounded-md bg-sky-100 px-2 py-1 font-mono text-[11px] font-semibold text-sky-700">
+              76%
+            </span>
+          </div>
+          <svg
+            viewBox="0 0 1100 264"
+            preserveAspectRatio="none"
+            className="mt-3 h-60 w-full"
+            role="img"
+            aria-label="Audience attention area chart with a peak of 84 percent at 14 minutes"
+          >
+            <defs>
+              <linearGradient
+                id="attention-area-fill"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
+              </linearGradient>
+              <filter
+                id="attention-glow"
+                x="-100%"
+                y="-100%"
+                width="300%"
+                height="300%"
+              >
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {[25, 50, 75].map((value) => {
+              const y =
+                chart.top + (1 - value / 100) * (chart.bottom - chart.top)
+              return (
+                <g key={value}>
+                  <line
+                    x1={chart.left}
+                    x2={chart.right}
+                    y1={y}
+                    y2={y}
+                    stroke="#f1f5f9"
+                  />
+                  <text
+                    x={chart.left - 8}
+                    y={y + 4}
+                    textAnchor="end"
+                    fill="#64748b"
+                    fontSize="11"
+                    fontWeight="500"
+                  >
+                    {value}
+                  </text>
+                </g>
+              )
+            })}
+            <text
+              x={chart.left - 8}
+              y={chart.bottom + 4}
+              textAnchor="end"
+              fill="#64748b"
+              fontSize="11"
+              fontWeight="500"
+            >
+              0
+            </text>
+            <path d={area} fill="url(#attention-area-fill)" />
+            <path
+              d={line}
+              fill="none"
+              stroke="#0ea5e9"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {chartPoints.map((point, index) => {
+              const value = attention[index]
+              const low = value < 65
+              return (
+                <g key={`${value}-${index}`} className="group">
+                  <circle cx={point[0]} cy={point[1]} r="12" fill="transparent">
+                    <title>{`${Math.round((index / (attention.length - 1)) * 24)} min · ${value}% attention`}</title>
+                  </circle>
+                  {low && (
+                    <circle
+                      cx={point[0]}
+                      cy={point[1]}
+                      r="7"
+                      fill="#f59e0b"
+                      opacity="0.2"
+                      className="animate-pulse"
+                    />
+                  )}
+                  {low && (
+                    <circle
+                      cx={point[0]}
+                      cy={point[1]}
+                      r="3.5"
+                      fill="#f59e0b"
+                      stroke="white"
+                      strokeWidth="1.5"
+                    />
+                  )}
+                </g>
+              )
+            })}
+            <g filter="url(#attention-glow)">
+              <circle
+                cx={peakPoint[0]}
+                cy={peakPoint[1]}
+                r="8"
+                fill="#14b8a6"
+                opacity="0.2"
+              />
+              <circle
+                cx={peakPoint[0]}
+                cy={peakPoint[1]}
+                r="4"
+                fill="#14b8a6"
+                stroke="white"
+                strokeWidth="2"
+              />
+            </g>
+            <g
+              transform={`translate(${peakPoint[0] - 39}, ${Math.max(4, peakPoint[1] - 35)})`}
+            >
+              <rect width="78" height="22" rx="7" fill="#0f172a" />
+              <text
+                x="39"
+                y="15"
+                textAnchor="middle"
+                fill="white"
+                fontSize="11"
+                fontWeight="600"
+              >
+                Peak 84%
+              </text>
+            </g>
+            {[0, 4, 8, 12, 16, 20, 24].map((minute, index) => {
+              const x = chart.left + (index / 6) * (chart.right - chart.left)
+              return (
+                <g key={minute}>
+                  <line
+                    x1={x}
+                    x2={x}
+                    y1={chart.bottom}
+                    y2={chart.bottom + 4}
+                    stroke="#cbd5e1"
+                  />
+                  <text
+                    x={x}
+                    y="234"
+                    textAnchor={
+                      index === 0 ? "start" : index === 6 ? "end" : "middle"
+                    }
+                    fill="#64748b"
+                    fontSize="11"
+                    fontWeight="500"
+                  >
+                    {minute} min
+                  </text>
+                </g>
+              )
+            })}
+          </svg>
+        </article>
+      </div>
+      <div className="mt-3 grid items-stretch gap-3 lg:grid-cols-3">
+        <article className="flex h-full flex-col rounded-xl border border-sky-100 bg-sky-50/70 p-5">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-sky-800">
+            <Sparkles size={14} /> Key insight
+          </span>
+          <p className="mt-2 text-[12px] leading-relaxed text-slate-600">
+            Attention was strongest when you compared profit and customer data.
+            Reuse that side-by-side storytelling pattern.
+          </p>
+        </article>
+        <article className="flex h-full flex-col rounded-xl border border-slate-200 p-5">
+          <h3 className="text-xs font-semibold text-slate-800">
+            Engagement distribution
+          </h3>
+          <div className="mt-3 space-y-2.5">
+            {[
+              { label: "Highly engaged", value: 5, tone: "bg-emerald-500" },
+              { label: "Following along", value: 2, tone: "bg-sky-500" },
+              { label: "Needs a check-in", value: 1, tone: "bg-amber-400" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center gap-2 text-[11px] text-slate-500"
+              >
+                <span className="w-28 shrink-0">{item.label}</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <span
+                    className={`block h-full rounded-full ${item.tone}`}
+                    style={{ width: `${(item.value / 8) * 100}%` }}
+                  />
+                </span>
+                <span className="w-3 text-right font-mono text-slate-700">
+                  {item.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="flex h-full flex-col rounded-xl border border-slate-200 p-5">
+          <h3 className="text-xs font-semibold text-slate-800">
+            Room activity
+          </h3>
+          <div className="mt-3 space-y-2.5 text-[12px]">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-slate-500">
+                <Hand size={14} className="text-sky-600" /> Hands raised
+              </span>
+              <b className="font-mono text-slate-800">4</b>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-slate-500">
+                <Smartphone size={14} className="text-amber-500" /> Phone
+                moments
+              </span>
+              <b className="font-mono text-slate-800">2</b>
+            </div>
+            <p className="border-t border-slate-100 pt-2 text-[11px] leading-relaxed text-slate-400">
+              Add a quick question after Slide 5 to recover the one attention
+              dip.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+  )
+}
 function AudiencePulse({
   wpm,
   band,
   peak,
+  points,
+  seconds,
+  slide,
+  sessionPhase,
 }: {
   wpm: number | null
   band: PaceBand
   peak: PacePoint | null
+  points: PacePoint[]
+  seconds: number
+  slide: number
+  sessionPhase: SessionPhase
 }) {
+  const average = points.length
+    ? Math.round(
+        points.reduce((sum, point) => sum + point.wpm, 0) / points.length,
+      )
+    : null
+  const recentPoints = points.slice(-12)
+  const trend = recentPoints
+    .map((point, index) => {
+      const x =
+        recentPoints.length <= 1
+          ? 160
+          : (index / (recentPoints.length - 1)) * 320
+      const y = 52 - ((Math.max(100, Math.min(180, point.wpm)) - 100) / 80) * 44
+      return `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(" ")
+  const nextCue =
+    slide === 5
+      ? "This is a dense data slide — pause after the headline."
+      : slide === 6 || slide === 7
+        ? "Let the numbers land before moving to the next point."
+        : "Lead with one clear takeaway before the detail."
   const advice =
     peak != null
       ? `Pacing spiked to ${peak.wpm} WPM on Slide ${peak.slide}. Pause before the next figure.`
@@ -377,40 +729,60 @@ function AudiencePulse({
           : band === "optimal"
             ? "You're in a great rhythm."
             : "Start live captions to measure speaking rate."
+  const hasPaceData = wpm !== null || points.length > 0
+  const statusMessage = hasPaceData
+    ? advice
+    : sessionPhase === "live"
+      ? "Start live captions to measure speaking rate."
+      : "Start presentation, then live captions to measure speaking rate."
+  const coachingTone = !hasPaceData
+    ? "border-slate-200/80 bg-slate-50"
+    : band === "fast"
+      ? "border-amber-200/70 bg-amber-50/75"
+      : band === "slow"
+        ? "border-sky-200/70 bg-sky-50/75"
+        : "border-emerald-200/70 bg-emerald-50/75"
   return (
-    <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
-      <div className="flex shrink-0 items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-800">PACING COACH</h2>
-        <span
-          className={cn(
-            "h-2 w-2 rounded-full",
-            band === "fast"
-              ? "bg-amber-500"
-              : band === "slow"
-                ? "bg-sky-700"
-                : band === "optimal"
-                  ? "animate-pulse bg-emerald-500"
-                  : "bg-slate-300",
-          )}
-        />
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
+        <span className="flex items-center gap-2 text-xs font-medium text-slate-800">
+          <Activity size={15} className="text-sky-500" /> Pacing coach
+        </span>
+        <span className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              band === "fast"
+                ? "bg-amber-500"
+                : band === "slow"
+                  ? "bg-sky-700"
+                  : band === "optimal"
+                    ? "bg-emerald-500"
+                    : "bg-slate-400",
+            )}
+          />
+          Live rate
+        </span>
       </div>
-      <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <section>
-          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
-            <Activity size={12} /> Speaking rate
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+            <Activity size={12} className="text-sky-500" /> Speaking rate
           </div>
           <div className="flex items-end gap-2">
-            <span className="text-[32px] font-bold leading-none text-slate-900">
+            <span className="text-3xl font-extrabold leading-none text-slate-900">
               {wpm ?? "—"}
             </span>
             <span
               className={cn(
-                "mb-1 text-xs font-medium",
+                "mb-0.5 rounded-full border px-2 py-0.5 text-xs font-bold",
                 band === "fast"
-                  ? "text-rose-700"
+                  ? "border-amber-200/60 bg-amber-50 text-amber-700"
                   : band === "slow"
-                    ? "text-sky-700"
-                    : "text-emerald-700",
+                    ? "border-sky-200/60 bg-sky-50 text-sky-700"
+                    : band === "optimal"
+                      ? "border-emerald-200/60 bg-emerald-50 text-emerald-600"
+                      : "border-slate-200 bg-slate-50 text-slate-500",
               )}
             >
               {band === "fast"
@@ -418,18 +790,108 @@ function AudiencePulse({
                 : band === "slow"
                   ? "WPM · Slow"
                   : band === "optimal"
-                    ? "WPM · On pace"
-                    : "WPM"}
+                    ? "WPM · Optimal"
+                    : "WPM · Waiting"}
             </span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">Target 120–140 WPM</p>
-        </section>
-        <section className="rounded-xl bg-amber-50/70 p-3.5">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium leading-relaxed text-amber-900">
-            <Sparkles size={14} /> Live presentation coaching
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+            <span
+              className={cn(
+                "block h-full rounded-full transition-all duration-500",
+                band === "fast"
+                  ? "bg-amber-400"
+                  : band === "slow"
+                    ? "bg-sky-400"
+                    : "bg-emerald-500",
+              )}
+              style={{
+                width: `${Math.max(0, Math.min(100, (((wpm ?? 0) - 80) / 100) * 100))}%`,
+              }}
+            />
           </div>
-          <p className="text-[13px] font-medium leading-relaxed text-amber-900">
-            {advice}
+          <p className="mt-2 inline-flex rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+            Target 120–140 WPM
+          </p>
+        </section>
+        {points.length >= 2 ? (
+          <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-medium text-slate-600">Recent pace</span>
+              <span className="font-mono text-slate-400">
+                last {recentPoints.length} samples
+              </span>
+            </div>
+            <svg
+              viewBox="0 0 320 56"
+              preserveAspectRatio="none"
+              className="mt-2 h-12 w-full"
+              role="img"
+              aria-label="Recent speaking pace trend"
+            >
+              <rect x="0" y="30" width="320" height="11" fill="#dcfce7" />
+              <path
+                d={trend}
+                fill="none"
+                stroke="#0284c7"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </section>
+        ) : (
+          <section className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-[11px] leading-relaxed text-slate-500">
+            Your pace trend appears after two caption samples.
+          </section>
+        )}
+        <section className="grid grid-cols-2 gap-2">
+          {[
+            { label: "Session time", value: paceClock(seconds), icon: Clock3 },
+            {
+              label: "Current slide",
+              value: `${String(slide).padStart(2, "0")} / ${slides.length}`,
+              icon: Layers,
+            },
+            {
+              label: "Average pace",
+              value: average ? `${average} WPM` : "—",
+              icon: Gauge,
+            },
+            {
+              label: "Fastest burst",
+              value: peak ? `${peak.wpm} WPM` : "—",
+              icon: Activity,
+            },
+          ].map(({ label, value, icon: Icon }) => (
+            <div
+              key={label}
+              className="rounded-xl border border-slate-200/70 bg-slate-50/90 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            >
+              <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500">
+                <Icon size={11} className="text-sky-500" /> {label}
+              </span>
+              <p className="mt-0.5 text-sm font-bold text-slate-800">{value}</p>
+            </div>
+          ))}
+        </section>
+        <section className={cn("rounded-xl border p-3.5", coachingTone)}>
+          <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+            <Sparkles size={13} className="text-amber-500" />
+            {hasPaceData ? "Live coaching" : "Coaching status"}
+          </div>
+          <p className="text-xs font-medium leading-relaxed text-slate-600">
+            {statusMessage}
+          </p>
+        </section>
+        <section className="rounded-xl border border-sky-200/60 bg-sky-50/80 p-3.5 text-slate-800">
+          <div className="flex items-center gap-2">
+            <Check size={13} className="text-sky-700" />
+            <span className="rounded bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-700">
+              Slide {slide} tip
+            </span>
+          </div>
+          <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+            {nextCue}
           </p>
         </section>
       </div>
@@ -443,7 +905,7 @@ function AppShell() {
   const stage = view === "qa" || view === "audience"
   const [slide, setSlide] = useState(1)
   const [paragraph, setParagraph] = useState(0)
-  const [paused, setPaused] = useState(false)
+  const [sessionPhase, setSessionPhase] = useState<SessionPhase>("ready")
   const [mic, setMic] = useState(false)
   const [laser, setLaser] = useState(true)
   const [settings, setSettings] = useState(false)
@@ -518,6 +980,7 @@ function AppShell() {
   }, [preferredSidebarWidth])
   const [notice, setNotice] = useState("")
   const [seconds, setSeconds] = useState(0)
+  const [sessionEndedAt, setSessionEndedAt] = useState<Date | null>(null)
   const [qaSeconds, setQaSeconds] = useState(299)
   const [qaTranscript, setQaTranscript] = useState<CaptionEntry[]>([])
   const [qaRecording, setQaRecording] = useState(false)
@@ -530,21 +993,14 @@ function AppShell() {
   const [pacePoints, setPacePoints] = useState<PacePoint[]>([])
   const wordsRef = useRef<SpokenWord[]>([])
   const pacePointsRef = useRef<PacePoint[]>([])
-  const burstRef = useRef<{ index: number; wpm: number } | null>(null)
+  const burstRef = useRef<{ index: number wpm: number } | null>(null)
   const paceStartedRef = useRef<number | null>(null)
   const band: PaceBand =
     wpm == null ? "idle" : wpm > 140 ? "fast" : wpm < 120 ? "slow" : "optimal"
   const latestPeak =
     [...pacePoints].reverse().find((point) => point.peak) ?? null
   const [teleprompterAutoScroll, setTeleprompterAutoScroll] = useState(false)
-  const [captions, setCaptions] = useState<CaptionEntry[]>(() => {
-    try {
-      const savedCaptions = localStorage.getItem("presenterplus-captions")
-      return savedCaptions ? JSON.parse(savedCaptions) as CaptionEntry[] : []
-    } catch {
-      return []
-    }
-  })
+  const [captions, setCaptions] = useState<CaptionEntry[]>([])
   const [interimCaption, setInterimCaption] = useState("")
   const [captionStatus, setCaptionStatus] =
     useState<"idle" | "listening" | "unsupported">("idle")
@@ -591,17 +1047,18 @@ function AppShell() {
       pacePointsRef.current = points
       setPacePoints(points)
       setWpm(next)
+      captionChannelRef.current?.postMessage({ type: "pace", wpm: next })
     }, 2000)
     return () => window.clearInterval(timer)
   }, [captionStatus])
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!paused) setSeconds((value) => value + 1)
-      if (view === "qa" && !paused)
+      if (sessionPhase === "live") setSeconds((value) => value + 1)
+      if (view === "qa" && sessionPhase === "live")
         setQaSeconds((value) => Math.max(0, value - 1))
     }, 1000)
     return () => clearInterval(timer)
-  }, [paused, view])
+  }, [sessionPhase, view])
   useEffect(() => {
     viewRef.current = view
   }, [view])
@@ -627,6 +1084,13 @@ function AppShell() {
       }
       if (message.type === "interim") setInterimCaption(message.text)
       if (message.type === "status") setMic(message.active)
+      if (message.type === "pace") setWpm(message.wpm)
+      if (message.type === "clear") {
+        setCaptions([])
+        setInterimCaption("")
+        setMic(false)
+        setWpm(null)
+      }
     }
     return () => {
       captionChannelRef.current = null
@@ -635,11 +1099,16 @@ function AppShell() {
   }, [])
   useEffect(() => {
     try {
-      localStorage.setItem("presenterplus-captions", JSON.stringify(captions))
+      localStorage.removeItem("presenterplus-captions")
     } catch {}
-  }, [captions])
+  }, [])
   useEffect(() => {
-    if (view !== "presenter" || paused || !teleprompterAutoScroll) return
+    if (
+      view !== "presenter" ||
+      sessionPhase !== "live" ||
+      !teleprompterAutoScroll
+    )
+      return
     const end = cue[slide] ?? script.length
     if (paragraph >= end - 1) return
 
@@ -650,7 +1119,7 @@ function AppShell() {
       setParagraph(nextParagraph)
     }, delay)
     return () => window.clearTimeout(timer)
-  }, [paragraph, paused, slide, teleprompterAutoScroll, view])
+  }, [paragraph, sessionPhase, slide, teleprompterAutoScroll, view])
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return
@@ -664,6 +1133,13 @@ function AppShell() {
   }, [])
   const time = (value: number) =>
     `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`
+  const completedSessionLabel = sessionEndedAt
+    ? new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(sessionEndedAt)
+    : null
   const setTeleprompterPosition = (nextParagraph: number) => {
     const start = cue[slideRef.current - 1] ?? 0
     const end = cue[slideRef.current] ?? script.length
@@ -854,40 +1330,39 @@ function AppShell() {
     }
   }
   useEffect(() => {
-    if (view === "qa") {
+    if (view === "qa" && sessionPhase === "live") {
       setQaSeconds(300)
       void startQaRecording()
     } else {
       stopQaRecording()
     }
-  }, [view])
+  }, [sessionPhase, view])
   useEffect(() => {
     return () => {
       stopQaRecording()
       if (qaAudioUrl) URL.revokeObjectURL(qaAudioUrl)
     }
   }, [])
-  const toggleCaptions = () => {
-    if (mic) {
-      shouldListenRef.current = false
-      recognitionRef.current?.stop()
-      setMic(false)
-      setInterimCaption("")
-      setCaptionStatus("idle")
-      const burst = burstRef.current
-      if (burst) {
-        burstRef.current = null
-        const points = pacePointsRef.current.map((point, index) =>
-          index === burst.index ? { ...point, peak: true } : point,
-        )
-        pacePointsRef.current = points
-        setPacePoints(points)
-      }
-      captionChannelRef.current?.postMessage({ type: "interim", text: "" })
-      captionChannelRef.current?.postMessage({ type: "status", active: false })
-      return
+  const stopLiveCaptions = () => {
+    shouldListenRef.current = false
+    recognitionRef.current?.stop()
+    setMic(false)
+    setInterimCaption("")
+    setCaptionStatus("idle")
+    const burst = burstRef.current
+    if (burst) {
+      burstRef.current = null
+      const points = pacePointsRef.current.map((point, index) =>
+        index === burst.index ? { ...point, peak: true } : point,
+      )
+      pacePointsRef.current = points
+      setPacePoints(points)
     }
-
+    captionChannelRef.current?.postMessage({ type: "interim", text: "" })
+    captionChannelRef.current?.postMessage({ type: "status", active: false })
+    captionChannelRef.current?.postMessage({ type: "pace", wpm: null })
+  }
+  const startLiveCaptions = () => {
     const speechWindow = window as typeof window & {
       SpeechRecognition?: SpeechRecognitionConstructor
       webkitSpeechRecognition?: SpeechRecognitionConstructor
@@ -972,6 +1447,7 @@ function AppShell() {
     paceStartedRef.current = Date.now()
     setWpm(null)
     setPacePoints([])
+    captionChannelRef.current?.postMessage({ type: "pace", wpm: null })
     try {
       recognition.start()
       setMic(true)
@@ -981,6 +1457,72 @@ function AppShell() {
     } catch {
       setNotice("Unable to start live captions. Please try again.")
     }
+  }
+  const toggleCaptions = () => {
+    if (sessionPhase !== "live") {
+      setNotice("Start presentation before enabling live captions")
+      return
+    }
+    if (mic) {
+      stopLiveCaptions()
+      return
+    }
+    startLiveCaptions()
+  }
+  const beginPresentation = () => {
+    if (
+      sessionPhase !== "ready" &&
+      !window.confirm(
+        "Start a new presentation? Current session data will be cleared.",
+      )
+    )
+      return
+    stopLiveCaptions()
+    stopQaRecording()
+    stopGestureControl()
+    if (qaAudioUrl) URL.revokeObjectURL(qaAudioUrl)
+    wordsRef.current = []
+    pacePointsRef.current = []
+    burstRef.current = null
+    paceStartedRef.current = null
+    setSeconds(0)
+    setSessionEndedAt(null)
+    setQaSeconds(299)
+    setQaTranscript([])
+    setQaAudioUrl("")
+    setCaptions([])
+    setInterimCaption("")
+    captionChannelRef.current?.postMessage({ type: "clear" })
+    setWpm(null)
+    setPacePoints([])
+    setSlide(1)
+    setParagraph(cue[0] ?? 0)
+    setTeleprompterAutoScroll(true)
+    setLaser(true)
+    setSessionPhase("live")
+    navigate("/")
+    startLiveCaptions()
+  }
+  const pausePresentation = () => {
+    if (sessionPhase === "live") {
+      setSessionPhase("paused")
+      setNotice("Presentation paused — session data is preserved")
+    } else if (sessionPhase === "paused") {
+      setSessionPhase("live")
+      setNotice("Presentation resumed")
+    }
+  }
+  const endPresentation = () => {
+    if (sessionPhase !== "live" && sessionPhase !== "paused") return
+    stopLiveCaptions()
+    stopQaRecording()
+    stopGestureControl()
+    setTeleprompterAutoScroll(false)
+    captionChannelRef.current?.postMessage({ type: "clear" })
+    setSessionEndedAt(new Date())
+    setSessionPhase("ended")
+    navigate("/")
+    setNotice("Presentation ended — your session data is ready to review")
   }
   const slideCaptions = captions.filter((caption) => caption.slide === slide)
   const liveCaption = [
@@ -1033,85 +1575,121 @@ function AppShell() {
         muted
         playsInline
       />
-      <header className="relative z-30 flex h-16 shrink-0 items-center border-b border-border bg-white">
-        <div className="flex h-full shrink-0 items-center gap-2 px-5 lg:w-[var(--sidebar-width)]">
-          <button
-            aria-label="Open navigation"
-            aria-expanded={sidebarOpen}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 text-slate-600 lg:hidden"
-          >
-            <Menu size={18} />
-          </button>
-          <NavLink
-            to="/"
-            onClick={() => setHelp(false)}
-            className="flex items-center gap-2.5 whitespace-nowrap"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
-              <AudioLines size={18} />
-            </span>
-            <span className="text-[19px] font-semibold tracking-[-0.4px]">
-              Presenter<span className="text-sky-700">Plus</span>
-            </span>
-          </NavLink>
-        </div>
-        <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4">
-          <h1 className="truncate text-[15px] font-semibold text-slate-800">
-            {view === "analytics"
-              ? "Presentation Performance Report"
-              : view === "attention"
-                ? "Attention dashboard"
-                : view === "students"
-                  ? "Students"
-                  : view === "sensing"
-                    ? "Pacing coach"
-                    : "Finance Report"}
-          </h1>
-          <div className="flex shrink-0 items-center gap-3">
-            {view === "analytics" ? (
-              <span className="hidden items-center gap-1.5 text-xs text-slate-500 md:flex">
-                Completed Oct 7, 2026{" "}
-                <span className="font-mono">(24 mins)</span>
-              </span>
-            ) : (
-              <span className="hidden items-center gap-1.5 text-xs text-slate-500 md:flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-600" /> Live{" "}
-                <span className="font-mono">{time(754 + seconds)}</span>
-              </span>
-            )}
-            {view !== "analytics" && (
-              <button
-                onClick={() =>
-                  window.open("/audience", "_blank", "noopener,noreferrer")
-                }
-                className="hidden items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-600 sm:flex"
-              >
-                <Expand size={14} /> Audience display
-              </button>
-            )}
+      {view !== "audience" && (
+        <header className="relative z-30 flex h-16 shrink-0 items-center border-b border-border bg-white">
+          <div className="flex h-full shrink-0 items-center gap-2 px-5 lg:w-[var(--sidebar-width)]">
             <button
-              aria-label="Session settings"
-              onClick={() => setSettings(true)}
-              className="text-slate-500 hover:text-sky-700"
+              aria-label="Open navigation"
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-1 text-slate-600 lg:hidden"
             >
-              <Settings2 size={18} />
+              <Menu size={18} />
             </button>
-            <button
-              aria-label="Notifications"
-              onClick={() =>
-                setNotice("All systems connected. You're all caught up.")
-              }
-              className="hidden text-slate-500 sm:block"
+            <NavLink
+              to="/"
+              onClick={() => setHelp(false)}
+              className="flex items-center gap-2.5 whitespace-nowrap"
             >
-              <Bell size={17} />
-            </button>
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-700">
-              AL
-            </span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                <AudioLines size={18} />
+              </span>
+              <span className="text-[19px] font-semibold tracking-[-0.4px]">
+                Presenter<span className="text-sky-700">Plus</span>
+              </span>
+            </NavLink>
           </div>
-        </div>
-      </header>
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4">
+            <h1 className="truncate text-[15px] font-semibold text-slate-800">
+              {view === "analytics"
+                ? "Presentation Performance Report"
+                : view === "attention"
+                  ? "Attention dashboard"
+                  : view === "students"
+                    ? "Students"
+                    : view === "sensing"
+                      ? "Pacing coach"
+                      : view === "qa"
+                        ? "Q&A session"
+                        : view === "audience"
+                          ? "Audience display"
+                          : "Presenter workspace"}
+            </h1>
+            <div className="flex shrink-0 items-center gap-3">
+              {view === "analytics" ? (
+                <span className="hidden items-center gap-1.5 text-xs text-slate-500 md:flex">
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      sessionPhase === "ended"
+                        ? "bg-emerald-500"
+                        : "bg-sky-600",
+                    )}
+                  />
+                  {sessionPhase === "ended" && completedSessionLabel
+                    ? `Completed ${completedSessionLabel}`
+                    : sessionPhase === "ready"
+                      ? "No completed session yet"
+                      : "Session in progress"}
+                  <span className="font-mono">{time(seconds)}</span>
+                </span>
+              ) : (
+                <span className="hidden items-center gap-1.5 text-xs text-slate-500 md:flex">
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      sessionPhase === "live"
+                        ? "bg-red-600"
+                        : sessionPhase === "paused"
+                          ? "bg-amber-500"
+                          : "bg-slate-300",
+                    )}
+                  />
+                  {sessionPhase === "ready"
+                    ? "Ready to present"
+                    : sessionPhase === "ended"
+                      ? "Session ended"
+                      : sessionPhase === "paused"
+                        ? "Paused"
+                        : "Live"}{" "}
+                  {sessionPhase !== "ready" && (
+                    <span className="font-mono">{time(seconds)}</span>
+                  )}
+                </span>
+              )}
+              {view !== "analytics" && (
+                <button
+                  onClick={() =>
+                    window.open("/audience", "_blank", "noopener,noreferrer")
+                  }
+                  className="hidden items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-600 sm:flex"
+                >
+                  <Expand size={14} /> Audience display
+                </button>
+              )}
+              <button
+                aria-label="Session settings"
+                onClick={() => setSettings(true)}
+                className="text-slate-500 hover:text-sky-700"
+              >
+                <Settings2 size={18} />
+              </button>
+              <button
+                aria-label="Notifications"
+                onClick={() =>
+                  setNotice("All systems connected. You're all caught up.")
+                }
+                className="hidden text-slate-500 sm:block"
+              >
+                <Bell size={17} />
+              </button>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-[11px] font-semibold text-sky-700">
+                AL
+              </span>
+            </div>
+          </div>
+        </header>
+      )}
       {sidebarOpen && (
         <button
           aria-label="Close navigation"
@@ -1148,14 +1726,33 @@ function AppShell() {
           >
             {view === "analytics" ? (
               <>
-                Completed session
-                <span className="ml-auto">24 mins</span>
+                {sessionPhase === "ended"
+                  ? "Completed session"
+                  : "Current session"}
+                <span className="ml-auto font-mono">{time(seconds)}</span>
               </>
             ) : (
               <>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
-                Live session{" "}
-                <span className="ml-auto font-mono">{time(754 + seconds)}</span>
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    sessionPhase === "live"
+                      ? "bg-emerald-500"
+                      : sessionPhase === "paused"
+                        ? "bg-amber-500"
+                        : "bg-slate-300",
+                  )}
+                />{" "}
+                {sessionPhase === "ready"
+                  ? "Ready to present"
+                  : sessionPhase === "ended"
+                    ? "Session ended"
+                    : sessionPhase === "paused"
+                      ? "Paused"
+                      : "Live session"}
+                {sessionPhase !== "ready" && (
+                  <span className="ml-auto font-mono">{time(seconds)}</span>
+                )}
               </>
             )}
           </div>
@@ -1332,16 +1929,17 @@ function AppShell() {
       <main
         className={cn(
           "min-h-0 min-w-0 flex-1 overflow-y-auto",
+          view === "audience" && "h-full w-full overflow-hidden",
           !stage && "lg:ml-[var(--sidebar-width)]",
         )}
       >
         <div
           className={cn(
-            "mx-auto flex max-w-[1680px] flex-col gap-2.5 px-4 py-3 xl:px-5",
-            view === "analytics" ||
-            view === "audience" ||
-            view === "attention" ||
-            view === "students"
+            "flex flex-col",
+            view === "audience"
+              ? "h-full w-full overflow-hidden"
+              : "mx-auto max-w-[1680px] gap-2.5 px-4 py-3 xl:px-5",
+            view === "audience" || view === "attention" || view === "students"
               ? "h-full min-h-0 overflow-hidden"
               : "min-h-full lg:h-full lg:min-h-0",
           )}
@@ -1365,7 +1963,8 @@ function AppShell() {
               <button
                 onClick={toggleCaptions}
                 aria-pressed={mic}
-                className="flex items-center gap-3"
+                disabled={sessionPhase !== "live"}
+                className="flex items-center gap-3 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <Wave small color={mic ? "bg-sky-700" : "bg-slate-300"} />
                 <span className="text-xs text-slate-600">
@@ -1590,7 +2189,15 @@ function AppShell() {
                   />
                 </div>
                 {view === "sensing" ? (
-                  <AudiencePulse wpm={wpm} band={band} peak={latestPeak} />
+                  <AudiencePulse
+                    wpm={wpm}
+                    band={band}
+                    peak={latestPeak}
+                    points={pacePoints}
+                    seconds={seconds}
+                    slide={slide}
+                    sessionPhase={sessionPhase}
+                  />
                 ) : (
                   <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0_4px_16px_rgba(15,23,42,0.05)]">
                     <div className="flex items-center justify-between shrink-0 border-b border-border px-4 py-2.5">
@@ -1745,11 +2352,15 @@ function AppShell() {
               </div>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setPaused(!paused)}
+                  onClick={pausePresentation}
                   className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-xs"
                 >
-                  {paused ? <Play size={14} /> : <Pause size={14} />}{" "}
-                  {paused ? "Resume" : "Pause timer"}
+                  {sessionPhase === "paused" ? (
+                    <Play size={14} />
+                  ) : (
+                    <Pause size={14} />
+                  )}{" "}
+                  {sessionPhase === "paused" ? "Resume" : "Pause timer"}
                 </button>
                 <button
                   onClick={() => setQaSeconds(qaSeconds + 60)}
@@ -1783,40 +2394,39 @@ function AppShell() {
           {view === "audience" && (
             <section
               id="audience-stage"
-              className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-white fullscreen:h-screen fullscreen:w-screen fullscreen:rounded-none fullscreen:border-0"
+              className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-slate-950 text-white fullscreen:h-screen fullscreen:w-screen"
             >
-              <div className="flex shrink-0 items-center justify-between bg-white px-5 py-3 text-[11px] text-slate-600">
-                <span className="flex items-center gap-2">
-                  <Radio size={13} /> AUDIENCE SHARED DISPLAY
+              <div className="absolute right-6 top-4 z-10 flex items-center gap-3 text-[11px] text-slate-200">
+                <span className="hidden items-center gap-1.5 rounded-full border border-slate-700/60 bg-slate-900/65 px-3 py-2 backdrop-blur-md sm:flex">
+                  <Radio size={12} className="text-sky-300" /> AUDIENCE DISPLAY
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={download}
-                    className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 shadow-sm"
+                    className="hidden items-center gap-1.5 rounded-full border border-slate-700/60 bg-slate-900/65 px-3 py-2 text-slate-100 backdrop-blur-md transition hover:bg-slate-800 sm:flex"
                   >
-                    <QrCode size={16} /> Structured session notes{" "}
-                    <Download size={13} />
+                    <QrCode size={13} /> Structured session notes{" "}
+                    <Download size={12} />
                   </button>
                   <button
                     aria-label="Fullscreen slide"
                     onClick={() => {
-                      const element = document.getElementById("audience-stage")
                       if (document.fullscreenElement) document.exitFullscreen()
-                      else element?.requestFullscreen?.()
+                      else document.documentElement.requestFullscreen?.()
                     }}
-                    className="rounded-md bg-slate-50 p-2 text-slate-600 shadow-sm"
+                    className="rounded-full border border-slate-700/60 bg-slate-900/65 p-2 text-slate-100 backdrop-blur-md transition hover:bg-slate-800"
                   >
                     <Maximize2 size={16} />
                   </button>
                 </div>
               </div>
-              <div className="flex min-h-0 w-full flex-1 items-center justify-center [container-type:size]">
+              <div className="flex min-h-0 w-full flex-1 items-center justify-center p-2 [container-type:size] sm:p-4">
                 <div className="aspect-video w-[min(100cqw,177.777777cqh)] overflow-hidden">
                   <Slide number={slide} />
                 </div>
               </div>
-              <div className="shrink-0 bg-[#0f172a] px-6 py-3 text-white">
-                <div className="mb-3 flex items-center gap-2 text-[11px] text-slate-300">
+              <div className="absolute inset-x-4 bottom-4 z-10 mx-auto max-w-4xl rounded-2xl border border-slate-700/50 bg-slate-900/80 p-4 shadow-2xl backdrop-blur-md sm:bottom-6 sm:inset-x-8">
+                <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-300">
                   <Mic size={12} className="text-sky-100" /> LIVE CAPTIONS{" "}
                   <span className="ml-auto">
                     {mic
@@ -1828,15 +2438,12 @@ function AppShell() {
                         : "Start captions in presenter view"}
                   </span>
                 </div>
-                <p className="text-[24px] font-medium leading-relaxed">
+                <p className="overflow-hidden text-center text-lg font-medium leading-snug text-white [-webkit-box-orient:vertical] [-webkit-line-clamp:2] sm:text-xl">
                   {liveCaption ? (
                     <>
-                      <mark className="rounded bg-yellow-200 px-2 text-slate-900">
+                      <mark className="rounded bg-sky-100/95 px-2 text-slate-950">
                         {liveCaption}
                       </mark>
-                      {interimCaption && (
-                        <span className="ml-2 text-slate-300">· live</span>
-                      )}
                     </>
                   ) : (
                     <span className="text-slate-300">
@@ -1911,19 +2518,21 @@ function AppShell() {
                 ))}
               </div>
               <div
-                className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:gap-0 lg:grid-cols-[minmax(0,1fr)_12px_var(--analytics-rail)]"
+                className="grid min-h-[410px] gap-3 lg:gap-0 lg:grid-cols-[minmax(0,1fr)_12px_var(--analytics-rail)]"
                 style={
                   { "--analytics-rail": `${analyticsRail}%` } as CSSProperties
                 }
               >
-                <section className="flex min-h-0 flex-col overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <section className="flex min-h-[410px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
                   <div className="flex items-baseline justify-between gap-3">
                     <div className="flex min-w-0 items-baseline">
                       <h2 className="text-[15px] font-semibold text-slate-900">
                         Session Pacing
                       </h2>
                       <p className="ml-2 text-xs font-normal text-slate-400">
-                        24-minute acoustic & speed analysis
+                        {sessionPhase === "ended"
+                          ? `${time(seconds)} acoustic & speed analysis`
+                          : "Acoustic & speed analysis"}
                       </p>
                     </div>
                     <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-slate-500">
@@ -2113,7 +2722,7 @@ function AppShell() {
                     )}
                   />
                 </div>
-                <section className="flex min-h-0 flex-col space-y-5 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm [scrollbar-width:thin]">
+                <section className="flex min-h-[410px] flex-col space-y-5 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm [scrollbar-width:thin]">
                   <div>
                     <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       AI delivery coaching
@@ -2242,6 +2851,7 @@ function AppShell() {
                   </div>
                 </section>
               </div>
+              <AudienceAttentionAnalytics />
             </>
           )}
           {(view === "attention" || view === "students") && (
@@ -2357,7 +2967,7 @@ function AppShell() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {view !== "qa" && (
+                  {view !== "qa" && sessionPhase === "live" && (
                     <button
                       onClick={() => void startGestureControl()}
                       aria-pressed={gestureEnabled}
@@ -2375,7 +2985,7 @@ function AppShell() {
                         : "Start gesture camera"}
                     </button>
                   )}
-                  {view !== "qa" && (
+                  {view !== "qa" && sessionPhase === "live" && (
                     <span
                       aria-live="polite"
                       className={cn(
@@ -2386,7 +2996,7 @@ function AppShell() {
                       {gestureStatus}
                     </span>
                   )}
-                  {view !== "qa" && (
+                  {view !== "qa" && sessionPhase === "live" && (
                     <button
                       onClick={() => setLaser(!laser)}
                       className={cn(
@@ -2397,31 +3007,67 @@ function AppShell() {
                       <MousePointer2 size={13} /> Laser {laser ? "on" : "off"}
                     </button>
                   )}
-                  {view !== "qa" && (
-                    <button
-                      onClick={() => setPaused(!paused)}
-                      className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px] text-slate-600"
-                    >
-                      {paused ? <Play size={13} /> : <Pause size={13} />}{" "}
-                      {paused ? "Resume session" : "Pause session"}
-                    </button>
+                  {sessionPhase === "ready" || sessionPhase === "ended" ? (
+                    <>
+                      {sessionPhase === "ended" && (
+                        <button
+                          onClick={() => navigate("/analytics")}
+                          className="rounded-lg border border-border px-3 py-2 text-[11px] text-slate-600"
+                        >
+                          View analytics
+                        </button>
+                      )}
+                      <button
+                        onClick={beginPresentation}
+                        className="flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-xs font-semibold text-white"
+                      >
+                        <Play size={13} />
+                        {sessionPhase === "ready"
+                          ? "Start presentation"
+                          : "Start new presentation"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {view !== "qa" && (
+                        <button
+                          onClick={pausePresentation}
+                          className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px] text-slate-600"
+                        >
+                          {sessionPhase === "paused" ? (
+                            <Play size={13} />
+                          ) : (
+                            <Pause size={13} />
+                          )}{" "}
+                          {sessionPhase === "paused"
+                            ? "Resume session"
+                            : "Pause session"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (view === "qa") {
+                            stopQaRecording()
+                            navigate("/")
+                            setNotice("Lecture mode resumed")
+                          } else {
+                            navigate("/qa")
+                            setNotice("Q&A mode started")
+                          }
+                        }}
+                        className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-[11px] text-slate-600"
+                      >
+                        <Mic size={13} />
+                        {view === "qa" ? "End Q&A" : "Enter Q&A mode"}
+                      </button>
+                      <button
+                        onClick={endPresentation}
+                        className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white"
+                      >
+                        <Square size={13} /> End presentation
+                      </button>
+                    </>
                   )}
-                  <button
-                    onClick={() => {
-                      if (view === "qa") {
-                        stopQaRecording()
-                        navigate("/")
-                        setNotice("Lecture mode resumed")
-                      } else {
-                        navigate("/qa")
-                        setNotice("Q&A mode started")
-                      }
-                    }}
-                    className="flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-xs font-semibold text-white"
-                  >
-                    <Mic size={13} />
-                    {view === "qa" ? "End Q&A" : "Enter Q&A mode"}
-                  </button>
                 </div>
               </footer>
             )
@@ -2435,7 +3081,9 @@ function AppShell() {
             !stage && "lg:left-[var(--sidebar-width)]",
             view === "qa"
               ? "bg-sky-700"
-              : view === "presenter" || view === "sensing"
+              : view === "presenter" ||
+                  view === "sensing" ||
+                  view === "audience"
                 ? band === "fast"
                   ? "bg-amber-500"
                   : band === "slow"
@@ -2443,7 +3091,7 @@ function AppShell() {
                     : band === "optimal"
                       ? "bg-emerald-500"
                       : "bg-slate-200"
-                : "bg-emerald-500",
+                : "bg-slate-600",
           )}
         />
       )}

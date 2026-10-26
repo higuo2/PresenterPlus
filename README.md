@@ -1,69 +1,77 @@
 # PresenterPlus
 
-PresenterPlus 是一个多模态演讲界面。讲者用手势、语音和现场提示来控制幻灯片，观众看实时字幕，讲完之后回看自己的表现。
+PresenterPlus 是一套多模态演讲界面：讲者用提词器、语音、手势和现场提示管理演示；观众观看沉浸式投影片与实时字幕；结束后查看语速、专注度与演示复盘。
 
-当前仓库是这套界面。语速提示跟着已确认的英文字幕变。会后报告里的语速曲线仍是演示数据。现场专注度接到单独克隆的 Python 摄像头服务。
+截至 2026-10-26，六项功能均已在本地预览中测试成功。完整实现状态、测试步骤与限制见 [PROCESS.md](PROCESS.md)。
 
-## 打开网页
-
-在项目目录里：
+## 启动
 
 ```powershell
 pnpm install
 pnpm dev
 ```
 
-浏览器打开 http://localhost:8443/ 。
+打开本地 Vite 预览地址（常见为 `http://localhost:8443/`；Figma Make 环境会提供自己的预览端口）。左侧导航可切换各页面，**Help & shortcuts** 提供语音和现场控制说明。
 
-左侧切换页面。**Help & shortcuts** 是手势、语音口令和现场提示的说明。
+## 六项功能
 
-## 六个功能
+1. **Smart Teleprompter**
+   - 显示前一句、当前句与下一句；当前句有 **YOU'RE HERE** 标记。
+   - 按完整词数和标点暂停估算停留时间。
+   - 空闲时不滚动；点击 **Start presentation** 后自动滚动，仍可用 **Auto-scroll** 手动暂停或恢复。
+   - 可点击任意可见脚本句、跳过/回看，或在切换投影片时重新定位。
 
-界面按 `Project_Description.pdf` 里的六个任务来排。
+2. **Pacing Coach**
+   - 只用已确认的英文字幕计算最近八秒的 WPM，每两秒刷新一次。
+   - Slow（<120）、Optimal（120–140）和 Fast（>140）会同步到 Presenter workspace、Pacing coach 及 Audience display。
+   - 面板提供 WPM、目标区间、近期曲线、会话指标、辅导建议与逐页 tip；快速语速结束后会在曲线上留下 peak 标记。
 
-1. **讲稿跟着讲走（Smart Teleprompter）**
-   Presenter workspace 里的提词器一次只显示几句，当前句会高亮。可以向上跳过、向下回看。说明里有把提词放大的语音口令。
+3. **Gesture-assisted Q&A**
+   - 摄像头不会自动打开；讲者手动选择 **Start gesture camera** 才会请求权限。
+   - 本地 WASM 手部关键点检测连续识别到双手约 0.8 秒后进入 Q&A；单独检测到人脸不会触发。
 
-2. **控制语速（Pacing Coach），现场专注度看摄像头**
-   打开 **Start live captions** 之后，只统计已经确认的英文词。每 2 秒用最近 8 秒的词数算出 WPM。120–140 是绿色，高于 140 是琥珀色，低于 120 是蓝色。窗口里没有新词时，颜色保持上一档。Pacing coach 页画出这条曲线；一段语速冲过 140 再落回来时，记下当时的幻灯片号。这一段还没有经过讲者实测。
-   原来的 Ambient Sensing 改由 **Attention dashboard** 和 **Students** 承担。摄像头按人脸朝向和视线给匿名分数，不存姓名。左侧 **Pacing coach** 下面就是这两页。这一页只看语速。
+4. **Lecture → Q&A**
+   - 支持按钮、双手手势或 `Enter Q&A` 语音口令进入问答。
+   - Q&A 包含五分钟计时、暂停/继续、加一分钟、字幕书签，以及浏览器支持时的内存音频回放。
+   - `End Q&A` 可回到讲课界面并保留本场数据。
 
-3. **不用碰设备来翻页和指向（Hands-Free Control）**
-   幻灯片可以点缩略图或用方向键翻。激光笔是一个开关。也可以先指向图表，再说放大。说明里写了滑动手势、握拳锁定和手指激光。
+5. **Live Captions & Audience Display**
+   - 浏览器英文实时字幕会同步到独立 Audience display 标签页。
+   - Audience display 是深色 theater mode，投影片最大化，字幕作为最多两行的浮动玻璃字幕条显示。
+   - 每次开始或结束演示都会清空 Audience display；不会恢复上一场的字幕。
+   - 可下载按 Slide 和时间戳整理的 **Structured session notes** 文本文件。
 
-4. **从讲课切到问答（Lecture 到 Q&A）**
-   Enter Q&A mode 会收起侧栏，进入问答倒计时。结束后可以回到讲课。说明里有对应的语音口令。
+6. **Attention & Session Analytics**
+   - Attention dashboard 与 Students 可连接可选的教室摄像头服务，显示匿名专注度、在场人数、手机、举手、眨眼、活动和趋势。
+   - Session analytics 会在结束演示后使用本场时间显示报告，并提供语速、受众专注度、分布、活动与手机使用摘要。
 
-5. **观众看字幕，会后拿笔记（Live Captions & Auto Notes）**
-   Audience display 是给观众看的画面：幻灯片、实时字幕，关键词会标出来。可以从这里下载这场的 session notes。
+## 快速验收
 
-6. **讲完之后回看（Analytics）**
-   Session analytics 是会后报告，包括语速曲线、填充词、问答时长、每组幻灯片用时，以及一条改进建议。
+1. 进入 Presenter workspace，选择 **Start presentation**，允许麦克风权限。
+2. 确认 Auto-scroll 启动；用英文连续讲话约十秒，检查 Pacing coach WPM 和状态变化。
+3. 打开 **Audience display**，确认只有本场字幕显示、字幕位于投影片下方浮层，且底部光条随 WPM 状态变化。
+4. 选择 **Enter Q&A mode**，测试计时和返回；或使用手动开启的 gesture camera，双手入镜约一秒进入 Q&A。
+5. 结束演示后查看 **Session analytics**。
+6. 若使用专注度功能，按下方说明启动 Python 服务，再检查 `/attention` 和 `/students`。
 
-## 专注度
+## Attention service（可选）
 
-摄像头服务在另一个仓库：[classroom-attention-monitor](https://github.com/higuo2/classroom-attention-monitor)。本仓库不包含它。在本目录里克隆，文件夹名保持不变：
+专注度摄像头服务位于独立仓库：[higuo2/classroom-attention-monitor](https://github.com/higuo2/classroom-attention-monitor)。本仓库不包含该服务。将它克隆到项目旁，并使用 Python 3.12：
 
 ```powershell
 git clone https://github.com/higuo2/classroom-attention-monitor.git
-```
-
-需要 Python 3.12。第一次在那个目录里：
-
-```powershell
+cd classroom-attention-monitor
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe scripts/download_models.py
 .\.venv\Scripts\python.exe -m alembic upgrade head
-```
-
-之后每次启动，监听 `8000`：
-
-```powershell
-cd classroom-attention-monitor
 .\.venv\Scripts\python.exe -m uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000
 ```
 
-再回到本目录执行 `pnpm dev`，打开 http://localhost:8443/attention 。
+回到此项目运行 `pnpm dev`，进入 `/attention` 并选择 **Start stream**。后端不可用时，前端会显示内置演示数据。
 
-下拉框默认是 **Latest session**，会跟着正在进行的那一节。点 **Start stream** 打开摄像头并开始记录，按钮变成 **Stop session**。模型加载时状态是 Connecting…，第一帧出来后，平均专注度、在场人数和曲线会跟着更新。**Students** 用同一节课。后端没开时，页面显示一组内置数字。
+## 技术限制
+
+- 字幕依赖浏览器 Web Speech Recognition 与麦克风权限，目前使用 `en-US`。
+- 注意力服务的首次画面会等待其模型加载。
+- Structured session notes 目前导出为 `.txt`，不是 PDF。
