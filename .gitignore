@@ -20,5 +20,6 @@ logs/
 /.plugins/
 /.opencode-skills/
 
-# Attention backend lives in its own repository.
-/classroom-attention-monitor/
+.venv/
+**/__pycache__/
+classroom-attention-monitor/data/

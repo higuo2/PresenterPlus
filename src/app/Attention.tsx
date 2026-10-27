@@ -329,7 +329,7 @@ function SessionBar({
           }
           className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-800"
         >
-          <option value="">Latest session</option>
+          <option value="">Demo session</option>
           {sessions.map((session) => (
             <option key={session.session_id} value={session.session_id}>
               #{session.session_id} {session.name}
@@ -566,12 +566,12 @@ export default function ClassroomAttention({
 }: {
   mode: "attention" | "students"
 }) {
-  const [report, setReport] = useState<Report | null>(null)
+  const [report, setReport] = useState<Report | null>(demoReport)
+  const [followLive, setFollowLive] = useState(false)
   const [jpeg, setJpeg] = useState<string | null>(null)
   const [live, setLive] = useState(false)
   const [running, setRunning] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [sessions, setSessions] = useState<SavedSession[]>([])
   const [picked, setPickedState] = useState<number | null>(rememberedPick)
   const [reload, setReload] = useState(0)
   const runningRef = useRef(false)
@@ -588,6 +588,7 @@ export default function ClassroomAttention({
     rememberedPick = value
     pickedRef.current = value
     setPickedState(value)
+    if (value == null) setFollowLive(false)
   }
   pickedRef.current = picked
 
@@ -638,9 +639,10 @@ export default function ClassroomAttention({
           runningRef.current = activeId != null
           setRunning(activeId != null)
         }
-        const list = (await readJson("/cam/sessions")) as SavedSession[] | null
-        if (stopped) return
-        if (list) setSessions(list)
+        if (picked == null && pendingRef.current !== "start" && !followLive) {
+          setReport(demoReport)
+          return
+        }
         const key = picked == null ? "latest" : String(picked)
         const query = picked == null ? "" : `?session_id=${picked}`
         const stats = await readJson(`/cam/statistics${query}`)
@@ -728,10 +730,10 @@ export default function ClassroomAttention({
       stopped = true
       window.clearTimeout(timer)
     }
-  }, [mode, picked, reload])
+  }, [mode, picked, reload, followLive])
 
   useEffect(() => {
-    if (mode !== "attention" || !running) {
+    if (mode !== "attention" || !running || (picked == null && !followLive)) {
       setJpeg(null)
       setLive(false)
       return
@@ -791,11 +793,12 @@ export default function ClassroomAttention({
       window.clearTimeout(timer)
       socket?.close()
     }
-  }, [mode, running])
+  }, [mode, running, picked, followLive])
 
   async function control(action: "start" | "stop") {
     if (busy) return
     pendingRef.current = action
+    setFollowLive(action === "start")
     const next = action === "start"
     runningRef.current = next
     setRunning(next)
@@ -824,6 +827,7 @@ export default function ClassroomAttention({
     if (failed && action === "start") {
       runningRef.current = false
       setRunning(false)
+      setFollowLive(false)
       setLive(false)
       setJpeg(null)
       return
@@ -837,7 +841,7 @@ export default function ClassroomAttention({
   if (mode === "students") {
     return (
       <section className="min-h-0 flex-1 overflow-y-auto">
-        <SessionBar sessions={sessions} picked={picked} onPick={setPicked} />
+        <SessionBar sessions={[]} picked={picked} onPick={setPicked} />
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {report.students.map((student) => {
             const tone = cardTone(student.avg_attention)
@@ -1005,9 +1009,11 @@ export default function ClassroomAttention({
     },
   ]
 
+  const showingCamera = running && !report.demo
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-      <SessionBar sessions={sessions} picked={picked} onPick={setPicked} />
+      <SessionBar sessions={[]} picked={picked} onPick={setPicked} />
       <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         {metrics.map((metric) => (
           <div
@@ -1036,29 +1042,27 @@ export default function ClassroomAttention({
             <span className="flex items-center gap-2 text-sm font-medium text-slate-800">
               <span
                 className={`h-2 w-2 rounded-full ${
-                  running && live
+                  showingCamera && live
                     ? "animate-pulse bg-emerald-500"
                     : "bg-slate-300"
                 }`}
               />
-              {running ? (live ? "Live" : "Connecting…") : "Idle"}
+              {showingCamera ? (live ? "Live" : "Connecting…") : "Idle"}
             </span>
-            {!report.demo && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => control(running ? "stop" : "start")}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-60 ${
-                  running ? "bg-rose-500" : "bg-sky-700"
-                }`}
-              >
-                {running ? <Square size={12} /> : <Play size={12} />}
-                {running ? "Stop session" : "Start stream"}
-              </button>
-            )}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => control(showingCamera ? "stop" : "start")}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-60 ${
+                showingCamera ? "bg-rose-500" : "bg-sky-700"
+              }`}
+            >
+              {showingCamera ? <Square size={12} /> : <Play size={12} />}
+              {showingCamera ? "Stop session" : "Start stream"}
+            </button>
           </div>
           <div className="flex aspect-video items-center justify-center bg-white">
-            {running && jpeg ? (
+            {showingCamera && jpeg ? (
               <img
                 src={`data:image/jpeg;base64,${jpeg}`}
                 alt="Live classroom frame"
@@ -1066,7 +1070,7 @@ export default function ClassroomAttention({
               />
             ) : (
               <p className="text-sm text-slate-400">
-                {running ? "Waiting for a frame." : "No live session"}
+                {showingCamera ? "Waiting for a frame." : "No live session"}
               </p>
             )}
           </div>

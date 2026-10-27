@@ -1,0 +1,19 @@
+# Runtime requirements for the PresenterPlus attention service.
+# Python 3.12. Model files are already in models/.
+
+# --- Backend ---
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+python-multipart>=0.0.9
+PyYAML>=6.0
+
+# --- Database ---
+SQLAlchemy>=2.0
+alembic>=1.13
+
+# --- ML / CV (torch-free default) ---
+numpy>=1.26
+scipy>=1.13
+opencv-python-headless>=4.9
+mediapipe>=0.10.14 ; python_version < "3.13"

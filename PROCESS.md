@@ -123,14 +123,12 @@ All six project features are implemented, tested successfully in the local previ
 
 ## Optional attention service setup
 
-The camera service is [higuo2/classroom-attention-monitor](https://github.com/higuo2/classroom-attention-monitor). It is intentionally not committed to this repository. Clone it alongside this project as `classroom-attention-monitor`, then run:
+The camera service is the local `classroom-attention-monitor` folder. From that folder, run:
 
 ```powershell
-git clone https://github.com/higuo2/classroom-attention-monitor.git
 cd classroom-attention-monitor
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe scripts/download_models.py
 .\.venv\Scripts\python.exe -m alembic upgrade head
 .\.venv\Scripts\python.exe -m uvicorn backend.app.asgi:app --host 127.0.0.1 --port 8000
 ```
