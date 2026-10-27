@@ -1,0 +1,7 @@
+# Runtime dependencies for the standalone macOS controller.
+numpy>=1.26
+opencv-python>=4.9
+mediapipe>=0.10.14
+PyAutoGUI>=0.9.54
+pyobjc-framework-Cocoa>=10.3
+pyobjc-framework-Quartz>=10.3
