@@ -65,6 +65,10 @@ All six project features are implemented, tested successfully in the local previ
 3. Hold both hands in view for about one second. Confirm Q&A opens.
 4. Return to the workspace, enable camera again, then stop it and confirm the preview disappears.
 
+### Standalone presentation-control companion
+
+The repository also includes [`hand-gesture-controller/`](hand-gesture-controller/README.md), a separately launched, macOS-only hand-gesture controller that the project owner tested successfully. It is intentionally independent from the React app: it uses Camera, AppKit/Quartz overlays, and PyAutoGUI arrow-key events to control the foreground full-screen Audience display (or another slideshow). It supports fist lock/unlock, left/right hand waves for slide navigation, finger-based laser/drawing, undo, and clear. Its setup and required Camera/Accessibility permissions are documented in its own README.
+
 ## 4. Lecture-to-Q&A transition and capture
 
 ### Delivered behaviour
@@ -110,7 +114,7 @@ All six project features are implemented, tested successfully in the local previ
 - **Attention dashboard** and **Students** use the optional `classroom-attention-monitor` Python service; an offline service falls back to demonstration data.
 - Attention dashboard provides class average, presence, phone moments, hand raises, blink rate, duration, live frame, activity, attention history, engagement distribution, and phone use.
 - Students uses anonymous labels only, with attention, last-seen, forward ratio, phone/hand/blink signals, and individual curves. Names are not stored.
-- **Latest session** follows active camera data; selecting a numbered session holds that report across both pages.
+- The Attention UI defaults to a built-in **Demo session**. Selecting **Start stream** switches it to the active local camera session. **Stop session** waits for the local service to finalize and persist the session, then automatically selects that saved session for review. Attention dashboard and Students both list saved sessions in their selector; choosing one loads its stored analytics instead of demo data.
 - Session analytics dynamically reports the just-completed presentation. Its audience-attention area uses a smooth area-spline chart, peak marker, distribution, activity, and phone-use summaries, visually distinct from Session pacing.
 
 ### Test procedure
@@ -118,7 +122,7 @@ All six project features are implemented, tested successfully in the local previ
 1. Start the Python service on port 8000 as described below, then open `/attention`.
 2. Select **Start stream**, wait for the first frame, and verify metrics update.
 3. Open **Students** and confirm it reads the same anonymous session.
-4. Select a prior session, verify it remains selected, then return to Latest and stop the stream.
+4. Select **Stop session**. Confirm the just-stopped session remains visible as a selected saved session, then choose it from the selector again in both Attention dashboard and Students and verify its recorded metrics remain available.
 5. Start and end a presentation, open **Session analytics**, and verify the completed-session header, pacing panel, and attention panel are current and balanced.
 
 ## Optional attention service setup

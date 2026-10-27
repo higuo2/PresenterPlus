@@ -298,6 +298,9 @@ type SavedSession = {
   session_id: number
   name: string
   status: string
+  started_at?: string | null
+  ended_at?: string | null
+  frames_processed?: number
 }
 
 function fmtClock(seconds: number) {
@@ -333,6 +336,7 @@ function SessionBar({
           {sessions.map((session) => (
             <option key={session.session_id} value={session.session_id}>
               #{session.session_id} {session.name}
+              {session.status === "running" ? " · live" : " · saved"}
             </option>
           ))}
         </select>
@@ -572,6 +576,7 @@ export default function ClassroomAttention({
   const [live, setLive] = useState(false)
   const [running, setRunning] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [sessions, setSessions] = useState<SavedSession[]>([])
   const [picked, setPickedState] = useState<number | null>(rememberedPick)
   const [reload, setReload] = useState(0)
   const runningRef = useRef(false)
@@ -620,6 +625,27 @@ export default function ClassroomAttention({
       window.clearTimeout(timer)
     }
   }, [])
+
+  useEffect(() => {
+    let stopped = false
+    let timer = 0
+    async function loadSessions() {
+      try {
+        const data = await readJson("/cam/sessions")
+        if (!stopped && Array.isArray(data)) {
+          setSessions(data as SavedSession[])
+        }
+      } catch {
+        if (!stopped) setSessions([])
+      }
+      if (!stopped) timer = window.setTimeout(loadSessions, 10000)
+    }
+    loadSessions()
+    return () => {
+      stopped = true
+      window.clearTimeout(timer)
+    }
+  }, [reload])
 
   useEffect(() => {
     let stopped = false
@@ -798,6 +824,7 @@ export default function ClassroomAttention({
   async function control(action: "start" | "stop") {
     if (busy) return
     pendingRef.current = action
+    if (action === "start") setPicked(null)
     setFollowLive(action === "start")
     const next = action === "start"
     runningRef.current = next
@@ -833,6 +860,14 @@ export default function ClassroomAttention({
       return
     }
     if (failed) return
+    if (action === "stop") {
+      const payload = await response.json().catch(() => null)
+      const savedSessionId = Number(payload?.session_id)
+      setFollowLive(false)
+      if (Number.isFinite(savedSessionId) && savedSessionId > 0) {
+        setPicked(savedSessionId)
+      }
+    }
     setReload((value) => value + 1)
   }
 
@@ -841,7 +876,7 @@ export default function ClassroomAttention({
   if (mode === "students") {
     return (
       <section className="min-h-0 flex-1 overflow-y-auto">
-        <SessionBar sessions={[]} picked={picked} onPick={setPicked} />
+        <SessionBar sessions={sessions} picked={picked} onPick={setPicked} />
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {report.students.map((student) => {
             const tone = cardTone(student.avg_attention)
@@ -1013,7 +1048,7 @@ export default function ClassroomAttention({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-      <SessionBar sessions={[]} picked={picked} onPick={setPicked} />
+      <SessionBar sessions={sessions} picked={picked} onPick={setPicked} />
       <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         {metrics.map((metric) => (
           <div
