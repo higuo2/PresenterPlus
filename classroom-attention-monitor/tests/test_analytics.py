@@ -17,7 +17,7 @@ class TestCrud:
         db, session_id = populated_session
         students = db.query(Student).filter_by(session_id=session_id).all()
         assert len(students) == 2
-        assert {s.label for s in students} == {"Student 1", "Student 2"}
+        assert {s.label for s in students} == {"Audience 1", "Audience 2"}
 
     def test_frames_persisted_with_scores(self, populated_session):
         db, session_id = populated_session
@@ -46,7 +46,7 @@ class TestAggregation:
     def test_per_student_stats(self, populated_session):
         db, session_id = populated_session
         stats = {s["label"]: s for s in aggregator.per_student_stats(db, session_id)}
-        s1, s2 = stats["Student 1"], stats["Student 2"]
+        s1, s2 = stats["Audience 1"], stats["Audience 2"]
 
         # Student 1 scores were 80..89 -> avg 84.5.
         assert s1["avg_attention"] == pytest.approx(84.5)
@@ -84,8 +84,8 @@ class TestAggregation:
         stats = aggregator.session_statistics(db, session_id)
         assert stats["students_detected"] == 2
         assert stats["total_samples"] == 20
-        assert stats["most_engaged"] == "Student 1"
-        assert stats["least_engaged"] == "Student 2"
+        assert stats["most_engaged"] == "Audience 1"
+        assert stats["least_engaged"] == "Audience 2"
         assert stats["low_attention_alerts"] == 5
         assert stats["phone_incidents"] == 1
 
@@ -114,7 +114,7 @@ class TestCsvExport:
         text = students_csv(db, session_id)
         rows = list(csv.DictReader(io.StringIO(text)))
         assert len(rows) == 2
-        assert rows[0]["label"] == "Student 1"
+        assert rows[0]["label"] == "Audience 1"
         assert float(rows[0]["avg_attention"]) == 84.5
 
     def test_csv_empty_session(self, db):

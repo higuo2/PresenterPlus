@@ -40,7 +40,7 @@ def student_result(
 ) -> StudentFrameResult:
     return StudentFrameResult(
         track_id=track_id,
-        label=f"Student {track_id}",
+        label=f"Audience {track_id}",
         bbox=(10.0 * track_id, 20.0, 10.0 * track_id + 80, 220.0),
         head=HeadPose(label=head_label, ok=True),
         eyes=EyeState(ear=0.28, eyes_closed=eyes_closed, blink_total=track_id, ok=True),

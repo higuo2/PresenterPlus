@@ -96,7 +96,7 @@ class TestAnalyticsEndpoints:
         r = client.get("/students", params={"session_id": seeded})
         assert r.status_code == 200
         students = r.json()
-        assert [s["label"] for s in students] == ["Student 1", "Student 2"]
+        assert [s["label"] for s in students] == ["Audience 1", "Audience 2"]
         assert students[0]["avg_attention"] == 90.0
 
     def test_attendance_endpoint(self, client, seeded):
@@ -111,7 +111,7 @@ class TestAnalyticsEndpoints:
         assert r.status_code == 200
         body = r.json()
         assert body["students_detected"] == 2
-        assert body["most_engaged"] == "Student 1"
+        assert body["most_engaged"] == "Audience 1"
         assert body["phone_incidents"] == 1
 
     def test_csv_export(self, client, seeded):
@@ -175,7 +175,7 @@ class TestStreamLifecycle:
         assert stats["total_samples"] > 0
 
         attendance = client.get("/attendance", params={"session_id": session_id}).json()
-        assert attendance["attendance"][0]["label"] == "Student 1"
+        assert attendance["attendance"][0]["label"] == "Audience 1"
 
     def test_double_start_conflicts(self, client, app, tmp_path):
         cv2 = pytest.importorskip("cv2")

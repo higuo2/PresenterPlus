@@ -36,7 +36,7 @@ class TestPipelineEndToEnd:
         ]
         result = run_frames(build_pipeline(scripts), 5)
         assert len(result.students) == 2
-        assert {s.label for s in result.students} == {"Student 1", "Student 2"}
+        assert {s.label for s in result.students} == {"Audience 1", "Audience 2"}
 
     def test_attentive_student_scores_high(self):
         scripts = [FakeStudentScript(bbox=(100, 100, 300, 500), attentive=True)]
@@ -76,8 +76,8 @@ class TestPipelineEndToEnd:
         result = run_frames(build_pipeline(scripts), 5)
         assert result.phones_visible == 1
         by_label = {s.label: s for s in result.students}
-        assert by_label["Student 1"].phone.visible
-        assert not by_label["Student 2"].phone.visible
+        assert by_label["Audience 1"].phone.visible
+        assert not by_label["Audience 2"].phone.visible
 
     def test_class_average_is_mean_of_students(self):
         scripts = [

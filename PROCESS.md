@@ -111,18 +111,18 @@ The repository also includes [`hand-gesture-controller/`](hand-gesture-controlle
 
 ### Delivered behaviour
 
-- **Attention dashboard** and **Students** use the optional `classroom-attention-monitor` Python service; an offline service falls back to demonstration data.
+- **Attention dashboard** and **Audience** use the optional `classroom-attention-monitor` Python service; an offline service falls back to demonstration data.
 - Attention dashboard provides class average, presence, phone moments, hand raises, blink rate, duration, live frame, activity, attention history, engagement distribution, and phone use.
-- Students uses anonymous labels only, with attention, last-seen, forward ratio, phone/hand/blink signals, and individual curves. Names are not stored.
-- The Attention UI defaults to a built-in **Demo session**. Selecting **Start stream** switches it to the active local camera session. **Stop session** waits for the local service to finalize and persist the session, then automatically selects that saved session for review. Attention dashboard and Students both list saved sessions in their selector; choosing one loads its stored analytics instead of demo data.
+- Audience uses anonymous labels only, with attention, last-seen, forward ratio, phone/hand/blink signals, and individual curves. Names are not stored.
+- The Attention UI defaults to a built-in **Demo session**. Selecting **Start stream** switches it to the active local camera session. **Stop session** waits for the local service to finalize and persist the session, then automatically selects that saved session for review. Attention dashboard and Audience both list saved sessions in their selector; choosing one loads its stored analytics instead of demo data.
 - Session analytics dynamically reports the just-completed presentation. Its audience-attention area uses a smooth area-spline chart, peak marker, distribution, activity, and phone-use summaries, visually distinct from Session pacing.
 
 ### Test procedure
 
 1. Start the Python service on port 8000 as described below, then open `/attention`.
 2. Select **Start stream**, wait for the first frame, and verify metrics update.
-3. Open **Students** and confirm it reads the same anonymous session.
-4. Select **Stop session**. Confirm the just-stopped session remains visible as a selected saved session, then choose it from the selector again in both Attention dashboard and Students and verify its recorded metrics remain available.
+3. Open **Audience** and confirm it reads the same anonymous session.
+4. Select **Stop session**. Confirm the just-stopped session remains visible as a selected saved session, then choose it from the selector again in both Attention dashboard and Audience and verify its recorded metrics remain available.
 5. Start and end a presentation, open **Session analytics**, and verify the completed-session header, pacing panel, and attention panel are current and balanced.
 
 ## Optional attention service setup

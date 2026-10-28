@@ -1605,8 +1605,8 @@ function AppShell() {
                 ? "Presentation Performance Report"
                 : view === "attention"
                   ? "Attention dashboard"
-                  : view === "students"
-                    ? "Students"
+                  : view === "audience-members"
+                    ? "Audience"
                     : view === "sensing"
                       ? "Pacing coach"
                       : view === "qa"
@@ -1770,7 +1770,7 @@ function AppShell() {
             { path: "/", name: "Presenter workspace", icon: Layers },
             { path: "/sensing", name: "Pacing coach", icon: Activity },
             { path: "/attention", name: "Attention dashboard", icon: Gauge },
-            { path: "/students", name: "Students", icon: Users },
+            { path: "/audience-members", name: "Audience", icon: Users },
             { path: "/qa", name: "Q&A session", icon: Mic },
             { path: "/audience", name: "Audience display", icon: Expand },
           ].map(({ path: href, name, icon: Icon }) => (
@@ -1939,7 +1939,9 @@ function AppShell() {
             view === "audience"
               ? "h-full w-full overflow-hidden"
               : "mx-auto max-w-[1680px] gap-2.5 px-4 py-3 xl:px-5",
-            view === "audience" || view === "attention" || view === "students"
+            view === "audience" ||
+              view === "attention" ||
+              view === "audience-members"
               ? "h-full min-h-0 overflow-hidden"
               : "min-h-full lg:h-full lg:min-h-0",
           )}
@@ -2854,9 +2856,9 @@ function AppShell() {
               <AudienceAttentionAnalytics />
             </>
           )}
-          {(view === "attention" || view === "students") && (
+          {(view === "attention" || view === "audience-members") && (
             <ClassroomAttention
-              mode={view === "students" ? "students" : "attention"}
+              mode={view === "audience-members" ? "students" : "attention"}
             />
           )}
           {view === "sensing" && <PaceTimeline points={pacePoints} />}
@@ -2950,7 +2952,7 @@ function AppShell() {
                 </button>
               </div>
             </footer>
-          ) : view === "attention" || view === "students" ? (
+          ) : view === "attention" || view === "audience-members" ? (
             <footer className="flex shrink-0 items-center gap-2 text-[11px] text-slate-500">
               <ShieldCheck size={13} /> Anonymous scores only. No names are
               stored.
@@ -3183,7 +3185,7 @@ const router = createBrowserRouter([
   { path: "/audience", Component: AppShell },
   { path: "/analytics", Component: AppShell },
   { path: "/attention", Component: AppShell },
-  { path: "/students", Component: AppShell },
+  { path: "/audience-members", Component: AppShell },
   { path: "*", Component: AppShell },
 ])
 export default function App() {

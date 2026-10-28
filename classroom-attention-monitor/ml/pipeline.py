@@ -163,7 +163,7 @@ class AttentionPipeline:
             students.append(
                 StudentFrameResult(
                     track_id=track.track_id,
-                    label=f"Student {track.track_id}",
+                    label=f"Audience {track.track_id}",
                     bbox=track.bbox,
                     head=head,
                     eyes=eyes,

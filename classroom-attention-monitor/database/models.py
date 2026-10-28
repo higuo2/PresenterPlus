@@ -2,7 +2,7 @@
 
 Schema
 ------
-MonitoringSession  1 -- *  Student            (anonymous "Student N" labels)
+MonitoringSession  1 -- *  Student            (anonymous "Audience N" labels)
 MonitoringSession  1 -- *  FrameAnalysis      (per student per processed frame)
 MonitoringSession  1 -- *  ClassSnapshot      (class-average timeline points)
 MonitoringSession  1 -- *  AttendanceRecord   (presence summary per student)
@@ -63,7 +63,7 @@ class Student(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"), index=True)
     track_id: Mapped[int] = mapped_column(Integer)          # tracker-assigned id
-    label: Mapped[str] = mapped_column(String(50))           # "Student 3"
+    label: Mapped[str] = mapped_column(String(50))           # "Audience 3"
     first_seen_ts: Mapped[float] = mapped_column(Float)      # session-relative seconds
     last_seen_ts: Mapped[float] = mapped_column(Float)
     frames_seen: Mapped[int] = mapped_column(Integer, default=0)

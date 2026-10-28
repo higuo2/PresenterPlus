@@ -30,7 +30,7 @@ def annotate_frame(frame_bgr: np.ndarray, result: FrameResult) -> np.ndarray:
 
     banner = (
         f"class avg {result.class_average:.0f}  |  "
-        f"students {len(result.students)}  |  "
+        f"audience {len(result.students)}  |  "
         f"phones {result.phones_visible}  |  hands {result.hands_raised}"
     )
     cv2.rectangle(out, (0, 0), (out.shape[1], 28), (30, 30, 30), -1)

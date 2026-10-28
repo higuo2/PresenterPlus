@@ -11,7 +11,7 @@ tracking dependencies:
    are kept as "lost" for `max_lost_frames` so a student who ducks behind a
    classmate gets the SAME id back when they reappear.
 
-Track ids are stable, monotonically increasing integers -> "Student N".
+Track ids are stable, monotonically increasing integers -> "Audience N".
 """
 from __future__ import annotations
 

@@ -80,7 +80,7 @@ type Snap = {
 const demoStudents: StudentRow[] = [
   {
     student_id: 1,
-    label: "Student 1",
+    label: "Audience 1",
     avg_attention: 88.17,
     avg_blink_rate: 15.01,
     phone_usage_ratio: 0,
@@ -89,7 +89,7 @@ const demoStudents: StudentRow[] = [
   },
   {
     student_id: 2,
-    label: "Student 2",
+    label: "Audience 2",
     avg_attention: 57.92,
     avg_blink_rate: 15.13,
     phone_usage_ratio: 0.0033,
@@ -98,7 +98,7 @@ const demoStudents: StudentRow[] = [
   },
   {
     student_id: 3,
-    label: "Student 3",
+    label: "Audience 3",
     avg_attention: 42.21,
     avg_blink_rate: 15.05,
     phone_usage_ratio: 0.1761,
@@ -107,7 +107,7 @@ const demoStudents: StudentRow[] = [
   },
   {
     student_id: 4,
-    label: "Student 4",
+    label: "Audience 4",
     avg_attention: 77.15,
     avg_blink_rate: 14.77,
     phone_usage_ratio: 0,
@@ -116,7 +116,7 @@ const demoStudents: StudentRow[] = [
   },
   {
     student_id: 5,
-    label: "Student 5",
+    label: "Audience 5",
     avg_attention: 84.62,
     avg_blink_rate: 14.95,
     phone_usage_ratio: 0,
@@ -125,7 +125,7 @@ const demoStudents: StudentRow[] = [
   },
   {
     student_id: 6,
-    label: "Student 6",
+    label: "Audience 6",
     avg_attention: 47.6,
     avg_blink_rate: 15.07,
     phone_usage_ratio: 0.0831,
@@ -134,7 +134,7 @@ const demoStudents: StudentRow[] = [
   },
   {
     student_id: 7,
-    label: "Student 7",
+    label: "Audience 7",
     avg_attention: 49.67,
     avg_blink_rate: 15.26,
     phone_usage_ratio: 0.0797,
@@ -143,7 +143,7 @@ const demoStudents: StudentRow[] = [
   },
   {
     student_id: 8,
-    label: "Student 8",
+    label: "Audience 8",
     avg_attention: 83.38,
     avg_blink_rate: 14.94,
     phone_usage_ratio: 0,
@@ -186,8 +186,8 @@ const demoEvents: Note[] = [
   {
     kind: "student_joined",
     timestamp: 120,
-    title: "Student joined",
-    detail: "8 students now present",
+    title: "Audience member joined",
+    detail: "8 audience members now present",
   },
   {
     kind: "session_started",
@@ -374,8 +374,8 @@ function activityOf(
       events.push({
         kind: "student_joined",
         timestamp: current.timestamp,
-        title: "Student joined",
-        detail: `${current.students_present} students now present`,
+        title: "Audience member joined",
+        detail: `${current.students_present} audience members now present`,
       })
     }
     if (current.phones_visible > prev.phones_visible) {
@@ -738,6 +738,7 @@ export default function ClassroomAttention({
           events: activityOf(snaps, analytics.session ?? null),
           students: students.map((student, index) => ({
             ...student,
+            label: student.label.replace(/^Student\b/, "Audience"),
             curve: curves[index] ?? [],
           })),
         })
@@ -1237,7 +1238,7 @@ export default function ClassroomAttention({
             Attention distribution
           </h2>
           <p className="text-xs text-slate-400">
-            How many students fall in each engagement band
+            How many audience members fall in each engagement band
           </p>
           <ul className="mt-5 flex flex-1 flex-col justify-center gap-3">
             {bands.map((item) => (
@@ -1267,7 +1268,7 @@ export default function ClassroomAttention({
             Phone usage
           </h2>
           <p className="text-xs text-slate-400">
-            Share of students with a phone detected
+            Share of the audience with a phone detected
           </p>
           {(() => {
             const total = charts.students.length || charts.present
@@ -1326,7 +1327,7 @@ export default function ClassroomAttention({
                       <b className="font-mono text-slate-800">{phonePct}%</b>
                     </span>
                     <span className="mt-1 block text-[11px] text-slate-400">
-                      {withPhone} of {total} students
+                      {withPhone} of {total} audience members
                     </span>
                   </li>
                   <li className="rounded-xl bg-slate-50 px-3 py-2.5">
@@ -1338,7 +1339,7 @@ export default function ClassroomAttention({
                       <b className="font-mono text-slate-800">{freePct}%</b>
                     </span>
                     <span className="mt-1 block text-[11px] text-slate-400">
-                      {Math.max(0, total - withPhone)} of {total} students
+                      {Math.max(0, total - withPhone)} of {total} audience members
                     </span>
                   </li>
                 </ul>

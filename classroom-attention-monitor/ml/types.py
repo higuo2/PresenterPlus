@@ -106,7 +106,7 @@ class StudentFrameResult:
     """Everything the system knows about one student in one frame."""
 
     track_id: int
-    label: str                     # "Student 3" (anonymous by design)
+    label: str                     # "Audience 3" (anonymous by design)
     bbox: BBox
     head: HeadPose = field(default_factory=HeadPose)
     eyes: EyeState = field(default_factory=EyeState)

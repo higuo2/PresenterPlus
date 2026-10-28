@@ -1,8 +1,8 @@
 # Classroom Attention Monitor
 
-This folder is the optional local camera service used by PresenterPlus **Attention dashboard** and **Students**. It runs independently on `http://127.0.0.1:8000`; PresenterPlus proxies its requests through `/cam` while the Vite development server is running.
+This folder is the optional local camera service used by PresenterPlus **Attention dashboard** and **Audience**. It runs independently on `http://127.0.0.1:8000`; PresenterPlus proxies its requests through `/cam` while the Vite development server is running.
 
-The service performs local, anonymous classroom analysis. It detects observable attention signals — head pose, gaze direction, blinks, phone visibility, and raised hands — and stores only tracker-generated labels such as `Student 1`. It does not store names or face embeddings.
+The service performs local, anonymous room analysis. It detects observable attention signals — head pose, gaze direction, blinks, phone visibility, and raised hands — and stores only tracker-generated labels such as `Audience 1`. It does not store names or face embeddings.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ Keep this terminal open. Then start PresenterPlus from the repository root, open
 - `GET /health` — current pipeline state
 - `POST /stream/start` and `POST /stream/stop` — camera control
 - `GET /statistics`, `/analytics`, `/attendance`, and `/students` — dashboard data
-- `GET /students/{id}/timeline` — anonymous student curve
+- `GET /students/{id}/timeline` — anonymous audience-member curve
 - `WS /ws/live` — annotated camera frames and live metrics
 
 ## Configuration and local data
