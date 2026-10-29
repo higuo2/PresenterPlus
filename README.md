@@ -1,13 +1,13 @@
 # PresenterPlus
 
-PresenterPlus is a multimodal interface for a live talk in English. The presenter runs the session with a teleprompter, speech, gesture, and on-screen controls. The audience watches the slide and live captions. After the talk, the presenter can open pace detail, anonymous attention, and a session review.
+PresenterPlus is a multimodal interface for a live English talk. The presenter uses a teleprompter, speech, gesture, and on-screen controls. The audience watches the slide and live captions. After the talk, the presenter can open pace detail, anonymous attention, and a session review.
 
-This file is how to install and run the project after you unzip it.
+Use this file to install and run the project.
 
-Two other files are for the report, not for installation:
+The report uses two other files:
 
-- [interaction-guide.md](interaction-guide.md) describes how the interface is designed. Follow this when you write the report.
-- [implementation-limits.md](implementation-limits.md) lists where the running program is behind that design. Use it when you take screenshots. Do not paste it into the report.
+- [interaction-guide.md](interaction-guide.md) is the design to follow in the report.
+- [implementation-limits.md](implementation-limits.md) is where the running program lags that design. Use it when you take screenshots. Do not paste it into the report.
 
 ## What you are opening
 
@@ -17,11 +17,11 @@ Two other files are for the report, not for installation:
 | Attention service | No | Camera analysis for the Attention dashboard and the Audience page. Python 3.12. |
 | Gesture controller | No | Slide changes, laser, and ink. macOS only. A separate program from the web app. |
 
-The web app’s **Start gesture camera** only enters Q&A when both hands are held for about 0.8 seconds. It does not change slides and it has no laser. Slide, laser, and ink are the macOS program.
+**Start gesture camera** in the web app enters Q&A when both hands are held for about 0.8 seconds. Slide changes, the laser, and ink are the macOS program.
 
 ## 1. Install Node, then start the web app
 
-You need Node.js 22, pnpm, and Chrome. Captions use Chrome’s English speech recognition.
+You need Node.js 22, pnpm, and Chrome. Captions use Chrome's English speech recognition.
 
 ```bash
 pnpm install
@@ -85,18 +85,18 @@ On first launch, allow the terminal to use the camera. Then open **System Settin
 | Screen | Address | What you should see |
 | --- | --- | --- |
 | Presenter workspace | `/` | Current slide, three script lines, **YOU'RE HERE**, pace band, Start / Pause / End |
-| Pacing coach | `/sensing` | WPM, Slow / Optimal / Fast, the 120–140 target, and a recent curve. Open it in another tab |
-| Q&A | `/qa` | Five-minute timer, pause, add one minute, caption bookmarks. Also opened by **Enter Q&A mode** or the spoken command “Enter Q&A” |
+| Pacing coach | `/sensing` | WPM, Slow / Optimal / Fast, the 120-140 target, and a recent curve. Open it in another tab |
+| Q&A | `/qa` | Five-minute timer, pause, add one minute, caption bookmarks. Also opened by **Enter Q&A mode** or the spoken command "Enter Q&A" |
 | Audience display | `/audience` | Dark full screen, large slide, at most two caption lines, pace light. No teleprompter |
 | Attention dashboard | `/attention` | Room attention. Sample data until **Start stream** |
 | Audience | `/audience-members` | Anonymous curves labeled Audience 1, Audience 2. No real names |
 | Session analytics | `/analytics` | Review layout after the talk. The chart numbers on this page are a fixed sample |
 
-Pace bands: Slow is under 120 WPM, Optimal is 120–140, Fast is over 140. A silent gap keeps the last band.
+Pace bands: Slow is under 120 WPM, Optimal is 120-140, Fast is over 140. A silent gap keeps the last band.
 
 **Structured session notes** download as `.txt` from the audience tab. Download them before **End presentation**. Ending the presentation clears the captions on that tab.
 
-A fuller design description, including the gesture vocabulary the report should use, is in [interaction-guide.md](interaction-guide.md).
+The gesture vocabulary for the report is in [interaction-guide.md](interaction-guide.md).
 
 ## 5. Stop and start again
 

@@ -1,8 +1,8 @@
 # Classroom Attention Monitor
 
-This folder is the optional local camera service used by PresenterPlus **Attention dashboard** and **Audience**. It runs independently on `http://127.0.0.1:8000`; PresenterPlus proxies its requests through `/cam` while the Vite development server is running.
+This folder is the optional local camera service for the PresenterPlus **Attention dashboard** and **Audience** page. It runs on `http://127.0.0.1:8000`. While the Vite development server is running, PresenterPlus proxies its requests through `/cam`.
 
-The service performs local, anonymous room analysis. It detects observable attention signals — head pose, gaze direction, blinks, phone visibility, and raised hands — and stores only tracker-generated labels such as `Audience 1`. It does not store names or face embeddings.
+The analysis stays on this machine and uses anonymous labels. It detects head pose, gaze direction, blinks, phones, and raised hands, and it stores tracker labels such as `Audience 1`. It does not store names or face embeddings.
 
 ## Requirements
 
@@ -36,18 +36,18 @@ Keep this terminal open. Then start PresenterPlus from the repository root, open
 
 ## API used by PresenterPlus
 
-- `GET /health` — current pipeline state
-- `POST /stream/start` and `POST /stream/stop` — camera control
-- `GET /statistics`, `/analytics`, `/attendance`, and `/students` — dashboard data
-- `GET /students/{id}/timeline` — anonymous audience-member curve
-- `WS /ws/live` — annotated camera frames and live metrics
+- `GET /health` checks the current pipeline state
+- `POST /stream/start` and `POST /stream/stop` control the camera
+- `GET /statistics`, `/analytics`, `/attendance`, and `/students` supply the dashboard
+- `GET /students/{id}/timeline` returns one anonymous audience curve
+- `WS /ws/live` sends annotated camera frames and live metrics
 
 ## Configuration and local data
 
-`config.yaml` contains the camera source, thresholds, analysis cadence, database location, and model paths. Runtime data is written below `data/` and is ignored by version control. Adjust `video.source` if the required camera is not index `0`.
+`config.yaml` sets the camera source, thresholds, analysis cadence, database location, and model paths. Runtime data is written under `data/` and is ignored by version control. Change `video.source` if the camera you need is not index `0`.
 
 ## Safety and privacy
 
-- Obtain consent before analyzing anyone on camera.
-- This is a presentation-support signal, not a grading, identification, or disciplinary system.
-- The gesture controller and this service both use the camera. Run only one camera-consuming feature at a time.
+- Get consent before anyone is on camera.
+- Use the record to review the talk. Do not use it to grade, identify, or discipline anyone.
+- This service and the gesture controller both need a camera. Run only one of them at a time.

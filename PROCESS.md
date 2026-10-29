@@ -1,25 +1,25 @@
 # PresenterPlus implementation progress
 
-## Final verified status — 2026-10-26
+## Final verified status, 2026-10-26
 
-All six project features are implemented, tested successfully in the local preview, and refined for the final PresenterPlus interface. `pnpm build` passes.
+The six features below were implemented and checked in the local preview. `pnpm build` passes.
 
 ## Shared presentation lifecycle
 
 1. **Start presentation** begins a clean session: timer, captions, pace samples, Q&A data, and presentation state reset.
-2. Starting a session begins browser live captions and Smart Teleprompter auto-scroll. The presenter can pause either feature independently.
-3. **Pause session** preserves data. **End presentation** stops captioning, recording, gesture detection, and teleprompter scrolling, while preserving the completed session for analytics.
-4. A new presentation clears old session state, so captions, pace data, and timers cannot leak into the next talk.
+2. Starting a session begins browser live captions and Smart Teleprompter auto-scroll. The presenter can pause either feature on its own.
+3. **Pause session** keeps the data. **End presentation** stops captioning, recording, gesture detection, and teleprompter scrolling, and keeps the finished session for analytics.
+4. A new presentation clears the previous session, so captions, pace data, and timers do not carry into the next talk.
 
 ## 1. Smart Teleprompter
 
 ### Delivered behaviour
 
-- Previous, current, and upcoming script lines are visible; **YOU'RE HERE** marks the active line.
-- Each line has a calculated duration based on full word count and punctuation pauses. Longer, more punctuated lines remain on screen longer.
-- Auto-scroll is off while the workspace is idle, starts automatically with **Start presentation**, and remains manually toggleable through its Auto-scroll pill.
-- Visible script lines, skip/revisit controls, and slide changes share one repositioning flow. Clicking a line moves **YOU'RE HERE** there immediately.
-- Scrolling stays within the active slide's script range.
+- Previous, current, and upcoming script lines are visible. **YOU'RE HERE** marks the active line.
+- Each line has a duration from its word count and punctuation pauses. Longer lines, and lines with more punctuation, stay on screen longer.
+- Auto-scroll is off while the workspace is idle. It starts with **Start presentation**, and the Auto-scroll pill can turn it off or on.
+- Clicking a visible line, the skip and revisit controls, and a slide change all move the same prompt. A click puts **YOU'RE HERE** on that line immediately.
+- Scrolling stays inside the active slide's script.
 
 ### Test procedure
 
@@ -27,103 +27,103 @@ All six project features are implemented, tested successfully in the local previ
 2. Select **Start presentation**. Confirm captions start and Auto-scroll becomes active.
 3. Wait for the calculated reading duration and confirm **YOU'RE HERE** advances.
 4. Toggle Auto-scroll off and on; verify the position pauses and resumes.
-5. Click an earlier/upcoming visible line, then switch slides; verify the prompt jumps correctly and starts from the new slide's first line.
+5. Click an earlier or upcoming visible line, then switch slides. The prompt should jump to the clicked line, and a new slide should start at its first line.
 
 ## 2. Live Pacing Coach
 
 ### Delivered behaviour
 
-- Confirmed English caption words are measured in an eight-second rolling window, recalculated every two seconds.
-- Pace bands are **Slow** below 120 WPM, **Optimal** from 120–140, and **Fast** above 140. Silent gaps retain the last meaningful state instead of being classified as slow.
-- Presenter workspace, Pacing coach, and Audience display share the rate state. The Audience display bottom light changes between slate, sky, emerald, and amber to match it.
-- Pacing coach includes WPM hero metric, status badge, target range, recent trace, live session metrics, coaching status, slide-specific tip, and peak marking after a fast burst returns to range.
-- Its title bar, status pill, stat cards, and timeline header follow the Presenter workspace visual system.
+- Confirmed English caption words are measured in an eight-second window and recalculated every two seconds.
+- **Slow** is below 120 WPM, **Optimal** is 120-140, and **Fast** is above 140. A silent gap keeps the last pace. Silence is not Slow.
+- The presenter workspace, the Pacing coach, and the Audience display share that pace. The light on the Audience display uses slate, sky, emerald, and amber for the same states.
+- The Pacing coach shows WPM, a status badge, the target range, a recent trace, session metrics, a coaching line, a tip for the current slide, and a peak mark after a fast stretch returns to the target range.
+- Its title bar, status pill, stat cards, and timeline header use the same visual system as the Presenter workspace.
 
 ### Test procedure
 
 1. Select **Start presentation** and allow microphone access in Chrome.
-2. Speak a comfortable English sentence for around ten seconds; confirm WPM and an Optimal state appear when appropriate.
-3. Speak quickly; confirm Fast/amber is reflected in the coach, workspace, and Audience display light.
-4. Return to a comfortable rate; confirm Optimal returns and a completed fast peak appears in the speaking-rate chart.
+2. Speak a comfortable English sentence for around ten seconds. Confirm WPM and an Optimal state when the rate is in range.
+3. Speak quickly. Confirm Fast, in amber, on the coach, the workspace, and the Audience display light.
+4. Return to a comfortable rate. Confirm Optimal returns and the finished fast stretch leaves a peak on the chart.
 5. Pause briefly and confirm silence alone does not switch the rate to Slow.
 6. Restart the presentation and confirm the rate, chart, and metrics reset.
 
-## 3. Hands-free gesture-assisted Q&A entry
+## 3. Gesture entry into Q&A
 
 ### Delivered behaviour
 
-- Gesture camera access is manual; it never starts on page load or when a session starts.
-- **Start gesture camera** requests camera access and shows a local lower-right preview only while enabled.
-- TensorFlow/WASM hand landmarks avoid a WebGL dependency.
-- Q&A opens only after two detected hands remain visible for 0.8 seconds; a face alone cannot trigger it.
-- The footer reports camera permission, camera-in-use, detector, one-hand, and two-hand states.
+- The gesture camera is manual. It does not start on page load or when a session starts.
+- **Start gesture camera** asks for the camera and shows a preview at the lower right only while it is on.
+- Hand landmarks use TensorFlow and WASM, so the page does not need WebGL.
+- Q&A opens after two hands stay visible for 0.8 seconds. A face alone does not open it.
+- The footer reports camera permission, whether the camera is in use, the detector, and one-hand or two-hand state.
 
 ### Test procedure
 
 1. Start a presentation and confirm the footer says **Camera off**.
-2. Select **Start gesture camera**, allow camera access, and confirm the preview requests both hands.
+2. Select **Start gesture camera**, allow camera access, and confirm the preview asks for both hands.
 3. Hold both hands in view for about one second. Confirm Q&A opens.
-4. Return to the workspace, enable camera again, then stop it and confirm the preview disappears.
+4. Return to the workspace, enable the camera again, then stop it and confirm the preview disappears.
 
-### Standalone presentation-control companion
+### Separate macOS controller
 
-The repository also includes [`hand-gesture-controller/`](hand-gesture-controller/README.md), a separately launched, macOS-only hand-gesture controller that the project owner tested successfully. It is intentionally independent from the React app: it uses Camera, AppKit/Quartz overlays, and PyAutoGUI arrow-key events to control the foreground full-screen Audience display (or another slideshow). It supports fist lock/unlock, left/right hand waves for slide navigation, finger-based laser/drawing, undo, and clear. Its setup and required Camera/Accessibility permissions are documented in its own README.
+The repository also includes [`hand-gesture-controller/`](hand-gesture-controller/README.md). It is a macOS program, started on its own, and the project owner tested it. It does not talk to the React app. It uses the camera, AppKit and Quartz overlays, and PyAutoGUI arrow keys to control the foreground window, such as a full-screen Audience display. Gestures cover fist lock and unlock, left and right waves for slides, and finger counts for laser, drawing, undo, and clear. Setup and the Camera and Accessibility permissions are in its own README.
 
-## 4. Lecture-to-Q&A transition and capture
+## 4. Q&A transition and capture
 
 ### Delivered behaviour
 
-- **Enter Q&A mode** opens the focused Q&A screen, resets a five-minute timer, and attempts in-memory audio recording.
-- Q&A may also be entered through the two-hand gesture or `Enter Q&A` live-caption command.
-- Q&A supports pause/resume, adding a minute, transcript bookmarks, and in-memory audio playback when `MediaRecorder` is available.
-- **End Q&A** or `End Q&A` returns to lecture mode without discarding session data. Permission/recording errors do not stop the timer.
+- **Enter Q&A mode** opens the Q&A screen, resets a five-minute timer, and tries to record audio in memory.
+- Q&A also opens from the two-hand gesture or the live-caption command `Enter Q&A`.
+- Q&A can pause, resume, add a minute, and bookmark the transcript. Playback of the in-memory recording works when `MediaRecorder` is available.
+- **End Q&A** or `End Q&A` returns to the talk and keeps the session data. If permission or recording fails, the timer still runs.
 
 ### Test procedure
 
 1. Start a presentation, select **Enter Q&A mode**, and allow microphone access.
-2. Verify timer, recording state, **+1 minute**, pause, and resume controls.
-3. With captions active, speak an English question and confirm the latest transcript bookmark appears.
-4. End Q&A by button or voice command and verify return to the workspace.
+2. Check the timer, the recording state, **+1 minute**, pause, and resume.
+3. With captions on, speak an English question and confirm the latest transcript bookmark appears.
+4. End Q&A with the button or the voice command and confirm the workspace returns.
 
-## 5. Live Captions, Audience Display, and Session Notes
+## 5. Live captions, audience display, and session notes
 
 ### Delivered behaviour
 
-- Browser `SpeechRecognition` / `webkitSpeechRecognition` is configured for English (`en-US`). Interim and final captions are handled separately.
-- Final caption segments retain time and slide number.
-- Presenter workspace and Audience display synchronise captions, microphone state, and pace state through the `presenterplus-live-captions` BroadcastChannel.
-- Audience display uses a dark theater slide canvas with a two-line floating glass subtitle bar. The slide remains the primary visual.
-- Audience display starts empty and only receives the active presentation's captions. Start/end session events clear every Audience display tab; prior captions are not restored from local storage.
-- The full-screen button invokes `document.documentElement.requestFullscreen()`.
-- **Structured session notes** downloads a text file grouped by slide with timestamped caption segments.
+- Browser `SpeechRecognition` / `webkitSpeechRecognition` is set to English (`en-US`). Interim and final captions are handled separately.
+- Each final caption keeps its time and slide number.
+- The presenter workspace and the Audience display share captions, microphone state, and pace through the `presenterplus-live-captions` BroadcastChannel.
+- The Audience display is a dark slide area with a two-line glass caption bar. The slide stays the largest element.
+- The Audience display starts empty and receives captions only from the active presentation. Start and end clear every Audience display tab. Old captions are not restored from local storage.
+- The full-screen button calls `document.documentElement.requestFullscreen()`.
+- **Structured session notes** downloads a text file grouped by slide, with a timestamp on each caption.
 
 ### Test procedure
 
 1. Open Presenter workspace and Audience display in separate tabs on the same browser profile and origin.
-2. Confirm Audience display opens with the empty-state subtitle, without captions from a previous session.
+2. Confirm Audience display opens with the empty subtitle and without captions from an earlier session.
 3. Start a session, allow microphone access, and say: `Sales came in where we expected.`
-4. Confirm interim/final text appears in the floating subtitle bar.
-5. Move slides, speak again, export **Structured session notes**, and verify `Slide NN` sections with timestamps.
+4. Confirm interim and final text appear in the caption bar.
+5. Change slides, speak again, export **Structured session notes**, and check for `Slide NN` sections with timestamps.
 6. End or restart the presentation and confirm captions clear in the audience tab.
-7. Select expand and verify browser full-screen enters/exits.
+7. Select expand and confirm the browser enters and leaves full screen.
 
-## 6. Attention monitoring and Session Analytics
+## 6. Attention monitoring and session analytics
 
 ### Delivered behaviour
 
-- **Attention dashboard** and **Audience** use the optional `classroom-attention-monitor` Python service; an offline service falls back to demonstration data.
-- Attention dashboard provides class average, presence, phone moments, hand raises, blink rate, duration, live frame, activity, attention history, engagement distribution, and phone use.
-- Audience uses anonymous labels only, with attention, last-seen, forward ratio, phone/hand/blink signals, and individual curves. Names are not stored.
-- The Attention UI defaults to a built-in **Demo session**. Selecting **Start stream** switches it to the active local camera session. **Stop session** waits for the local service to finalize and persist the session, then automatically selects that saved session for review. Attention dashboard and Audience both list saved sessions in their selector; choosing one loads its stored analytics instead of demo data.
-- Session analytics dynamically reports the just-completed presentation. Its audience-attention area uses a smooth area-spline chart, peak marker, distribution, activity, and phone-use summaries, visually distinct from Session pacing.
+- **Attention dashboard** and **Audience** use the optional `classroom-attention-monitor` Python service. If that service is offline, the pages show demonstration data.
+- The Attention dashboard shows the room average, presence, phone moments, hand raises, blink rate, duration, the live frame, activity, attention history, engagement distribution, and phone use.
+- Audience uses anonymous labels only, with attention, last seen, forward ratio, phone, hand, and blink signals, plus an individual curve. Names are not stored.
+- The Attention UI opens on a built-in **Demo session**. **Start stream** switches to the local camera. **Stop session** waits for the local service to save the session, then selects that saved session. Both Attention dashboard and Audience list saved sessions. Choosing one loads its stored numbers instead of the demo.
+- Session analytics reports the presentation that just ended. Its attention area uses a smooth area-spline chart, a peak marker, distribution, activity, and phone-use summaries, separate from the pacing panel.
 
 ### Test procedure
 
 1. Start the Python service on port 8000 as described below, then open `/attention`.
-2. Select **Start stream**, wait for the first frame, and verify metrics update.
+2. Select **Start stream**, wait for the first frame, and confirm the metrics update.
 3. Open **Audience** and confirm it reads the same anonymous session.
-4. Select **Stop session**. Confirm the just-stopped session remains visible as a selected saved session, then choose it from the selector again in both Attention dashboard and Audience and verify its recorded metrics remain available.
-5. Start and end a presentation, open **Session analytics**, and verify the completed-session header, pacing panel, and attention panel are current and balanced.
+4. Select **Stop session**. Confirm that session stays selected, then choose it again from the selector on both Attention dashboard and Audience and confirm the recorded metrics are still there.
+5. Start and end a presentation, open **Session analytics**, and check the completed-session header, the pacing panel, and the attention panel.
 
 ## Optional attention service setup
 
@@ -141,13 +141,13 @@ Then run this project with `pnpm dev` and open the local preview.
 
 ## Verification record
 
-- All flows above were tested successfully and accepted in the local preview by 2026-10-26.
+- The flows above were tested in the local preview and accepted by 2026-10-26.
 - `pnpm build` passes.
 - `pnpm exec oxfmt src/app/App.tsx src/app/Attention.tsx` passes.
 - `git diff --check` passes.
 
 ## Platform constraints
 
-- Live captions depend on browser speech-recognition support and microphone permission. English (`en-US`) is the configured language.
-- The attention service must load computer-vision models before its first live frame; a short Connecting state is expected.
+- Live captions need browser speech recognition and microphone permission. The language is English (`en-US`).
+- The attention service loads its vision models before the first live frame, so a short Connecting state is expected.
 - Structured session notes export as plain text, not PDF.
