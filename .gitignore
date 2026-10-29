@@ -20,6 +20,3 @@ logs/
 /.plugins/
 /.opencode-skills/
 
-.venv/
-**/__pycache__/
-classroom-attention-monitor/data/
